@@ -1,0 +1,150 @@
+.page {
+  min-height: 100vh;
+  padding: 48px 0 80px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+/* Sidebar */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 90px;
+}
+
+.profileCard {
+  padding: 32px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.bigAvatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--rose), var(--blush));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 8px;
+  box-shadow: 0 6px 24px rgba(242,134,149,0.35);
+}
+
+.profileName {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--ink);
+  margin: 0;
+}
+
+.profileEmail {
+  font-size: 0.8rem;
+  color: var(--gray);
+  word-break: break-all;
+}
+
+.quickNav {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.navItem:hover { background: var(--gray-light); }
+
+.navItemActive {
+  background: var(--rose-light);
+  color: var(--rose-dark);
+}
+
+/* Content */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section {
+  padding: 28px 32px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+  gap: 16px;
+}
+
+.sectionHeader h2 {
+  font-size: 1.25rem;
+  font-family: var(--font-display);
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 560px) {
+  .infoGrid { grid-template-columns: 1fr; }
+  .section { padding: 22px 20px; }
+}
+
+/* Danger zone */
+.dangerZone {
+  border: 1.5px solid rgba(192,57,43,0.2);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  background: rgba(192,57,43,0.04);
+}
+
+.dangerTitle {
+  font-weight: 800;
+  color: #c0392b;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.dangerDesc {
+  font-size: 0.82rem;
+  color: var(--gray);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
