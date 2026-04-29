@@ -300,9 +300,9 @@ export default function Dashboard() {
                           }
                         </button>
                       )}
-                      {set.status === 'Published' && (
+                      {set.status === 'Published' || set.status === 'Draft' && (
                         <button className="btn btn-danger btn-sm" disabled={isActioning} onClick={() => setCancelModal(set)}>
-                          {isActioning ? <span className="spinner" style={{ width: 14, height: 14 }} /> : '✕ Cancelar'}
+                          {isActioning ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Cancelar'}
                         </button>
                       )}
                       {set.status === 'Open' && (

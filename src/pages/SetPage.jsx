@@ -275,9 +275,9 @@ export default function SetPage() {
                       📢 Publicar
                     </button>
                   )}
-                  {set.status === 'Published' && (
+                  {set.status === 'Published' || set.status === 'Draft' && (
                     <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(true)}>
-                      ✕ Cancelar set
+                      Cancelar set
                     </button>
                   )}
                   {set.status === 'Open' && (

@@ -199,7 +199,7 @@ export default function Home() {
         <div className="page-container" style={{ textAlign: 'center' }}>
           <Logo size={28} showText />
           <p style={{ color: 'var(--gray)', fontSize: '0.78rem', marginTop: 12 }}>
-            feito com 💜 para a comunidade kpop do Brasil
+            feito com ♥️ para a comunidade kpop do Brasil
           </p>
         </div>
       </footer>
