@@ -1,6 +1,6 @@
 # 🍦 Kureimo — Plataforma de Claim de Photocards
 
-> Feito para a comunidade kpop do Brasil 💜
+> Feito para a comunidade kpop do Brasil 
 
 ## Stack
 
