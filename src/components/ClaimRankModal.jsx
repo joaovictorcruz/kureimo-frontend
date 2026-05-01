@@ -8,10 +8,11 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`card ${styles.modal}`}>
+
         {/* Header */}
         <div className={styles.header}>
           <div>
-            <div className={styles.artistName}>{photocard.artistName || 'Photocards'}</div>
+            <div className={styles.artistName}>{photocard.artistName || 'Photocard'}</div>
             {photocard.version && <div className={styles.version}>{photocard.version}</div>}
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px 10px' }}>✕</button>
@@ -19,7 +20,6 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
 
         <hr className="divider" />
 
-        {/* Ranking list */}
         {claims.length === 0 ? (
           <div className={styles.empty}>
             <span style={{ fontSize: '2rem' }}>🌸</span>
@@ -27,20 +27,18 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
           </div>
         ) : (
           <>
-            <div className={styles.rankHeader}>
-              <span>Posição</span>
-              <span>Usuário</span>
-              <span>Contato</span>
-              <span>Horário</span>
-            </div>
             <div className={styles.rankList}>
               {claims.map((c, i) => {
-                const isMe = c.userId === userId;
+                const isMe       = c.userId === userId;
                 const claimedDate = new Date(c.claimedAt);
                 const time = claimedDate.toLocaleTimeString('pt-BR', {
                   hour: '2-digit', minute: '2-digit', second: '2-digit',
                 });
-                const ms = String(claimedDate.getMilliseconds()).padStart(3, '0');
+                const ms     = String(claimedDate.getMilliseconds()).padStart(3, '0');
+                const medal  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
+                const picUrl = c.profilePicUrl || null;
+                const name   = c.username || c.userName || 'usuário';
+                const initial = name[0].toUpperCase();
 
                 return (
                   <div
@@ -48,23 +46,49 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
                     className={`${styles.rankRow} ${isMe ? styles.myRow : ''} claim-pulse`}
                     style={{ animationDelay: `${i * 40}ms` }}
                   >
+                    {/* Posição — fora do mini-card */}
                     <div className={styles.pos}>
-                      {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                      {medal
+                        ? <span className={styles.medal}>{medal}</span>
+                        : <span className={styles.posNum}>#{i + 1}</span>
+                      }
                     </div>
-                    <div className={styles.rankUser}>
-                      <div className="avatar" style={{ width: 28, height: 28, fontSize: '0.7rem' }}>
-                        {(c.username || c.userName || '?')[0].toUpperCase()}
+
+                    {/* Mini-card: avatar + nome / contato / horário */}
+                    <div className={`${styles.miniCard} ${isMe ? styles.miniCardMe : ''}`}>
+                      <div className={styles.miniLeft}>
+                        {/* Avatar com foto de perfil */}
+                        {picUrl ? (
+                          <img
+                            src={picUrl}
+                            alt={name}
+                            style={{
+                              width: 30, height: 30, borderRadius: '50%',
+                              objectFit: 'cover', flexShrink: 0,
+                              border: isMe ? '2px solid var(--rose)' : '1.5px solid var(--card-border)',
+                            }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="avatar" style={{ width: 30, height: 30, fontSize: '0.72rem', flexShrink: 0 }}>
+                            {initial}
+                          </div>
+                        )}
+
+                        <div className={styles.miniInfo}>
+                          <span className={styles.miniUsername}>
+                            {name}
+                            {isMe && <span className={styles.meMark}> (você)</span>}
+                          </span>
+                          {c.phoneNumber && (
+                            <span className={styles.miniPhone}>📱 {c.phoneNumber}</span>
+                          )}
+                        </div>
                       </div>
-                      <span className={styles.rankUsername}>
-                        {c.username || c.userName || 'usuário'}
-                        {isMe && <span className={styles.meMark}> (você)</span>}
-                      </span>
-                    </div>
-                    <div className={styles.rankPhone}>
-                      {c.phoneNumber || '—'}
-                    </div>
-                    <div className={styles.rankTime}>
-                      {time}<span className={styles.rankMs}>.{ms}</span>
+
+                      <div className={styles.miniTime}>
+                        {time}<span className={styles.miniMs}>.{ms}</span>
+                      </div>
                     </div>
                   </div>
                 );

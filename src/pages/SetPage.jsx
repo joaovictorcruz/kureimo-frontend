@@ -1,24 +1,40 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { setsApi, claimsApi } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useCountdown } from '../hooks/useCountdown';
 import { useSignalR } from '../hooks/useSignalR';
-import ClaimRankModal from '../components/ClaimRankModal';
 import AddPhotocardModal from '../components/AddPhotocardModal';
+import ClaimRankModal from '../components/ClaimRankModal';
 import ConfirmModal from '../components/ConfirmModal';
+import ImageCropModal from '../components/ImageCropModal';
 import styles from './SetPage.module.css';
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const ALLOWED_IMAGE_EXTS  = '.jpg,.jpeg,.png,.webp';
+const MAX_IMAGE_SIZE      = 5 * 1024 * 1024;
+
 const FONT_MAP = {
-  'Nunito':           "'Nunito', sans-serif",
-  'DM Serif Display': "'DM Serif Display', serif",
-  'Playfair Display': "'Playfair Display', serif",
-  'Lora':             "'Lora', serif",
-  'Montserrat':       "'Montserrat', sans-serif",
-  'Pacifico':         "'Pacifico', cursive",
-  'Dancing Script':   "'Dancing Script', cursive",
-  'Courier New':      "'Courier New', monospace",
+  'Nunito':             "'Nunito', sans-serif",
+  'Montserrat':         "'Montserrat', sans-serif",
+  'Raleway':            "'Raleway', sans-serif",
+  'Poppins':            "'Poppins', sans-serif",
+  'Quicksand':          "'Quicksand', sans-serif",
+  'Josefin Sans':       "'Josefin Sans', sans-serif",
+  'Righteous':          "'Righteous', cursive",
+  'DM Serif Display':   "'DM Serif Display', serif",
+  'Playfair Display':   "'Playfair Display', serif",
+  'Lora':               "'Lora', serif",
+  'Cinzel':             "'Cinzel', serif",
+  'Cormorant Garamond': "'Cormorant Garamond', serif",
+  'Abril Fatface':      "'Abril Fatface', cursive",
+  'Pacifico':           "'Pacifico', cursive",
+  'Dancing Script':     "'Dancing Script', cursive",
+  'Caveat':             "'Caveat', cursive",
+  'Satisfy':            "'Satisfy', cursive",
+  'Courier New':        "'Courier New', monospace",
+  'Space Mono':         "'Space Mono', monospace",
 };
 
 export default function SetPage() {
@@ -26,13 +42,29 @@ export default function SetPage() {
   const { user, isGom } = useAuth();
   const toast = useToast();
 
-  const [set, setSet] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [set, setSet]               = useState(null);
+  const [loading, setLoading]       = useState(true);
   const [claimedIds, setClaimedIds] = useState(new Set());
   const [claimingId, setClaimingId] = useState(null);
-  const [rankModal, setRankModal] = useState(null);
+  const [rankModal, setRankModal]   = useState(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cancelModal, setCancelModal] = useState(false);
+
+  // Edição de membros
+  const [editMode, setEditMode]     = useState(false);
+  const [editingPc, setEditingPc]   = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [savingPc, setSavingPc]     = useState(false);
+  const [reordering, setReordering] = useState(false);
+
+  // Drag-and-drop reorder
+  const dragIndexRef = useRef(null);
+  const [dragOver, setDragOver] = useState(null);
+
+  // Alterar imagem do set
+  const imgInputRef                     = useRef(null);
+  const [cropSrc, setCropSrc]           = useState(null);
+  const [uploadingImg, setUploadingImg] = useState(false);
 
   const { timeLeft, phase } = useCountdown(set?.claimOpensAt, set?.status);
   const isStreamingPhase = phase === 'streaming' || phase === 'open';
@@ -59,10 +91,22 @@ export default function SetPage() {
   const fetchSet = useCallback(async () => {
     try {
       const data = await setsApi.getByToken(token);
-      setSet(data);
-      if (user && data.photocards) {
+      const photocards = data.photocards || [];
+      const enriched = await Promise.all(
+        photocards.map(async (pc) => {
+          try {
+            const claims = await claimsApi.getByPhotocard(pc.id);
+            return { ...pc, claims: claims || [] };
+          } catch {
+            return pc;
+          }
+        })
+      );
+      const enrichedSet = { ...data, photocards: enriched };
+      setSet(enrichedSet);
+      if (user) {
         const ids = new Set(
-          data.photocards
+          enriched
             .filter((pc) => (pc.claims || []).some((c) => c.userId === user.id))
             .map((pc) => pc.id)
         );
@@ -77,6 +121,7 @@ export default function SetPage() {
 
   useEffect(() => { fetchSet(); }, [fetchSet]);
 
+  // ── Claim ──
   const handleClaim = async (e, photocardId) => {
     e.stopPropagation();
     if (!user) { toast.info('Faça login para dar claim!'); return; }
@@ -123,6 +168,7 @@ export default function SetPage() {
     });
   };
 
+  // ── Ações GOM: set ──
   const handleCancel = async () => {
     setCancelModal(false);
     try {
@@ -154,6 +200,113 @@ export default function SetPage() {
     }
   };
 
+  // ── Ações GOM: membros ──
+  const handleSavePc = async () => {
+    if (!editingPc?.artistName?.trim()) { toast.error('Nome do artista é obrigatório.'); return; }
+    setSavingPc(true);
+    try {
+      await setsApi.updatePhotocard(token, editingPc.id, {
+        artistName: editingPc.artistName.trim(),
+        version:    editingPc.version?.trim() || '',
+      });
+      setSet((prev) => prev ? {
+        ...prev,
+        photocards: prev.photocards.map((pc) =>
+          pc.id === editingPc.id
+            ? { ...pc, artistName: editingPc.artistName.trim(), version: editingPc.version?.trim() || '' }
+            : pc
+        ),
+      } : prev);
+      toast.success('Membro atualizado! ✨');
+      setEditingPc(null);
+    } catch (err) {
+      toast.error(err?.message || 'Erro ao atualizar membro.');
+    } finally {
+      setSavingPc(false);
+    }
+  };
+
+  const handleDeletePc = async () => {
+    const id = deletingId;
+    setDeletingId(null);
+    try {
+      await setsApi.deletePhotocard(token, id);
+      setSet((prev) => prev ? {
+        ...prev,
+        photocards: prev.photocards.filter((pc) => pc.id !== id),
+      } : prev);
+      toast.success('Membro removido.');
+    } catch (err) {
+      toast.error(err?.message || 'Erro ao remover membro.');
+    }
+  };
+
+  // ── Drag-and-drop ──
+  const handleDragStart = (e, index) => {
+    dragIndexRef.current = index;
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOver(index);
+  };
+
+  const handleDrop = async (e, dropIndex) => {
+    e.preventDefault();
+    const dragIndex = dragIndexRef.current;
+    if (dragIndex === null || dragIndex === dropIndex) { setDragOver(null); return; }
+    const pcs = [...(set.photocards || [])];
+    const [moved] = pcs.splice(dragIndex, 1);
+    pcs.splice(dropIndex, 0, moved);
+    setSet((prev) => prev ? { ...prev, photocards: pcs } : prev);
+    setDragOver(null);
+    dragIndexRef.current = null;
+    setReordering(true);
+    try {
+      await setsApi.reorderPhotocards(token, pcs.map((pc) => pc.id));
+    } catch {
+      toast.error('Erro ao salvar ordem. Recarregando...');
+      fetchSet();
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const handleDragEnd = () => { dragIndexRef.current = null; setDragOver(null); };
+
+  // ── Alterar imagem ──
+  const handleImgFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) { toast.error('Formato inválido. Use JPG, JPEG, PNG ou WEBP.'); e.target.value = ''; return; }
+    if (file.size > MAX_IMAGE_SIZE) { toast.error('A imagem deve ter no máximo 5MB.'); e.target.value = ''; return; }
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(URL.createObjectURL(file));
+    e.target.value = '';
+  };
+
+  const handleCropConfirm = async (blob) => {
+    URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setUploadingImg(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', blob, 'set-image.jpg');
+      await setsApi.updateImage(token, formData);
+      toast.success('Imagem atualizada! 🖼️');
+      fetchSet();
+    } catch (err) {
+      toast.error(err?.message || 'Erro ao atualizar imagem.');
+    } finally {
+      setUploadingImg(false);
+    }
+  };
+
+  const handleCropCancel = () => { URL.revokeObjectURL(cropSrc); setCropSrc(null); };
+
+  // ── Renders ──
   if (loading) return (
     <main className={styles.loadingWrap}>
       <div className="spinner" style={{ width: 40, height: 40 }} />
@@ -171,12 +324,17 @@ export default function SetPage() {
     </main>
   );
 
-  const theme = set.theme || {};
+  const theme     = set.theme || {};
   const bgColor   = set.backgroundColor || null;
   const fontColor = set.fontColor || null;
-  const fontCss   = set.fontStyle
-    ? FONT_MAP[set.fontStyle] || `'${set.fontStyle}', sans-serif`
-    : null;
+  const fontCss   = set.fontStyle ? FONT_MAP[set.fontStyle] || `'${set.fontStyle}', sans-serif` : null;
+
+  // Dados do GON vindos da API
+  const gon = set.gon || {};
+  const gonName    = gon.username    || set.gomUsername || set.ownerUsername || 'GOM';
+  const gonPicUrl  = gon.profilePicUrl || null;
+  const gonInitial = gonName[0].toUpperCase();
+
   const statusMeta = {
     Draft:     { label: 'Rascunho',   cls: 'badge-gray' },
     Published: { label: 'Publicado',  cls: 'badge-lilac' },
@@ -184,6 +342,9 @@ export default function SetPage() {
     Closed:    { label: 'Encerrado',  cls: 'badge-gray'  },
   };
   const sm = statusMeta[set.status] || { label: set.status, cls: 'badge-gray' };
+
+  const canAddMember  = isGom && set.status === 'Draft';
+  const canEditMember = isGom && (set.status === 'Draft' || set.status === 'Published');
 
   return (
     <main className={styles.page}>
@@ -195,7 +356,6 @@ export default function SetPage() {
           {/* ══════════ LEFT COLUMN ══════════ */}
           <div className={styles.leftCol}>
 
-            {/* Timer */}
             <TimerBanner
               phase={phase}
               timeLeft={timeLeft}
@@ -203,19 +363,15 @@ export default function SetPage() {
               apiStatus={set.status}
             />
 
-            {/* Set "post" card */}
+            {/* Set card */}
             <div className={styles.setCard} style={bgColor ? { background: bgColor } : {}}>
-
-              {/* Image */}
               <div className={styles.setImgWrap}>
                 {set.imageUrl ? (
                   <img src={set.imageUrl} alt={set.title} className={styles.setImg} />
                 ) : (
                   <div className={styles.setImgPlaceholder}>
                     <span style={{ fontSize: '3rem' }}>🃏</span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--gray)', marginTop: 8 }}>
-                      Nenhuma imagem definida
-                    </span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--gray)', marginTop: 8 }}>Nenhuma imagem definida</span>
                   </div>
                 )}
                 <span className={`badge ${sm.cls}`} style={{ position: 'absolute', top: 14, left: 14 }}>
@@ -226,16 +382,38 @@ export default function SetPage() {
                     <span className={styles.liveDot} /> Tempo real
                   </span>
                 )}
+                {isGom && (
+                  <>
+                    <button
+                      className={styles.changeImgBtn}
+                      onClick={() => imgInputRef.current?.click()}
+                      disabled={uploadingImg}
+                      title="Alterar imagem do set"
+                    >
+                      {uploadingImg ? <span className="spinner" style={{ width: 12, height: 12 }} /> : '🖼️ Alterar imagem'}
+                    </button>
+                    <input ref={imgInputRef} type="file" accept={ALLOWED_IMAGE_EXTS} onChange={handleImgFileChange} style={{ display: 'none' }} />
+                  </>
+                )}
               </div>
 
-              {/* GOM info */}
               <div className={styles.setMeta}>
+                {/* GON row populado com dados da API */}
                 <div className={styles.gomRow}>
-                  <div className="avatar" style={{ width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0 }}>
-                    {(set.gomUsername || set.ownerUsername || 'G')[0].toUpperCase()}
-                  </div>
+                  {gonPicUrl ? (
+                    <img
+                      src={gonPicUrl}
+                      alt={gonName}
+                      style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="avatar" style={{ width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0 }}>
+                      {gonInitial}
+                    </div>
+                  )}
                   <div>
-                    <div className={styles.gomName}>{set.gomUsername || set.ownerUsername || 'GOM'}</div>
+                    <div className={styles.gomName}>{gonName}</div>
                     <div className={styles.gomSub}>Group Order Manager</div>
                   </div>
                 </div>
@@ -243,8 +421,8 @@ export default function SetPage() {
                 <h2
                   className={styles.setTitle}
                   style={{
-                    ...(fontCss ? { fontFamily: fontCss } : {}),
-                    ...(fontColor ? { color: fontColor } : {}),
+                    ...(fontCss   ? { fontFamily: fontCss }   : {}),
+                    ...(fontColor ? { color: fontColor }       : {}),
                   }}
                 >
                   {set.title || 'Set de Photocards'}
@@ -260,22 +438,17 @@ export default function SetPage() {
               </div>
             </div>
 
-            {/* GOM control bar */}
+            {/* GOM control bar — sem botão +Membro aqui */}
             {isGom && (
               <div className={`card ${styles.gomBar}`}>
                 <span style={{ fontWeight: 800, color: 'var(--ink-soft)', fontSize: '0.82rem' }}>👑 Painel GOM</span>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {(set.status === 'Draft' || set.status === 'Published') && (
-                    <button className="btn btn-secondary btn-sm" onClick={() => setShowAddCard(true)}>
-                      + Membro
-                    </button>
-                  )}
                   {set.status === 'Draft' && !!(set.photocards || []).length && (
                     <button className="btn btn-primary btn-sm" onClick={handlePublish}>
                       📢 Publicar
                     </button>
                   )}
-                  {set.status === 'Published' || set.status === 'Draft' && (
+                  {(set.status === 'Draft' || set.status === 'Published') && (
                     <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(true)}>
                       Cancelar set
                     </button>
@@ -298,27 +471,61 @@ export default function SetPage() {
 
           {/* ══════════ RIGHT COLUMN ══════════ */}
           <div className={styles.rightCol}>
+
+            {/* Header com título + botões de ação agrupados */}
             <div className={styles.memberListHeader}>
-              <span className={styles.memberListTitle}>Membros</span>
-              <span className={styles.memberListCount}>
-                {(set.photocards || []).length} disponível{(set.photocards || []).length !== 1 ? 'is' : ''}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className={styles.memberListTitle}>Membros</span>
+                <span className={styles.memberListCount}>
+                  {(set.photocards || []).length} disponível{(set.photocards || []).length !== 1 ? 'is' : ''}
+                </span>
+              </div>
+
+              {/* +Membro e Editar membros ficam juntos no lado direito */}
+              {canEditMember && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {/* +Membro só em Draft */}
+                  {canAddMember && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.78rem' }}
+                      onClick={() => setShowAddCard(true)}
+                    >
+                      + Membro
+                    </button>
+                  )}
+                  <button
+                    className={`btn btn-sm ${editMode ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.78rem' }}
+                    onClick={() => { setEditMode((m) => !m); setEditingPc(null); }}
+                  >
+                    {editMode ? '✓ Concluir' : '✏️ Editar membros'}
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Dica para GOM em Draft */}
-            {isGom && set.status === 'Draft' && (
+            {editMode && (
+              <div className={styles.gomHint} style={{ marginBottom: 10 }}>
+                <span>↕️</span>
+                <span>Arraste para reordenar · Clique em ✏️ para editar nome/versão · 🗑️ para excluir</span>
+              </div>
+            )}
+
+            {isGom && set.status === 'Draft' && !editMode && (
               <div className={styles.gomHint}>
                 {!(set.photocards || []).length ? (
-                  <>
-                    <span>⚠️</span>
-                    <span>Adicione um ou mais membros para poder publicar o seu set para os collectors.</span>
-                  </>
+                  <><span>⚠️</span><span>Adicione um ou mais membros para poder publicar o seu set para os collectors.</span></>
                 ) : (
-                  <>
-                    <span>✅</span>
-                    <span>Após adicionar todos os membros, publique o set para que os collectors possam dar claim!</span>
-                  </>
+                  <><span>✅</span><span>Após adicionar todos os membros, publique o set para que os collectors possam dar claim!</span></>
                 )}
+              </div>
+            )}
+
+            {reordering && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: '0.75rem', color: 'var(--gray)' }}>
+                <span className="spinner" style={{ width: 14, height: 14 }} />
+                <span>Salvando nova ordem...</span>
               </div>
             )}
 
@@ -326,27 +533,47 @@ export default function SetPage() {
               {(set.photocards || []).length === 0 ? (
                 <div className={styles.emptyMembers}>
                   <span style={{ fontSize: '2rem' }}>🌸</span>
-                  <p style={{ color: 'var(--gray)', fontSize: '0.88rem', marginTop: 8 }}>
-                    Nenhum membro adicionado.
-                  </p>
-                  {isGom && (
+                  <p style={{ color: 'var(--gray)', fontSize: '0.88rem', marginTop: 8 }}>Nenhum membro adicionado.</p>
+                  {canAddMember && (
                     <button className="btn btn-primary btn-sm" style={{ marginTop: 12 }} onClick={() => setShowAddCard(true)}>
                       + Adicionar
                     </button>
                   )}
                 </div>
               ) : (
-                (set.photocards || []).map((pc) => (
-                  <MemberRow
-                    key={pc.id}
-                    pc={pc}
-                    phase={phase}
-                    claimed={claimedIds.has(pc.id)}
-                    claiming={claimingId === pc.id}
-                    userId={user?.id}
-                    onClaim={(e) => handleClaim(e, pc.id)}
-                    onOpenRank={() => setRankModal(pc)}
-                  />
+                (set.photocards || []).map((pc, index) => (
+                  editMode ? (
+                    <MemberRowEdit
+                      key={pc.id}
+                      pc={pc}
+                      index={index}
+                      isEditing={editingPc?.id === pc.id}
+                      editingPc={editingPc}
+                      savingPc={savingPc}
+                      dragOver={dragOver === index}
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onEdit={() => setEditingPc({ id: pc.id, artistName: pc.artistName || '', version: pc.version || '' })}
+                      onCancelEdit={() => setEditingPc(null)}
+                      onSave={handleSavePc}
+                      onDelete={() => setDeletingId(pc.id)}
+                      onChange={(field, val) => setEditingPc((p) => ({ ...p, [field]: val }))}
+                    />
+                  ) : (
+                    <MemberRow
+                      key={pc.id}
+                      pc={pc}
+                      phase={phase}
+                      claimed={claimedIds.has(pc.id)}
+                      claiming={claimingId === pc.id}
+                      userId={user?.id}
+                      isGom={isGom}
+                      onClaim={(e) => handleClaim(e, pc.id)}
+                      onOpenRank={() => setRankModal(pc)}
+                    />
+                  )
                 ))
               )}
             </div>
@@ -354,6 +581,7 @@ export default function SetPage() {
         </div>
       </div>
 
+      {/* ── Modais ── */}
       {cancelModal && (
         <ConfirmModal
           title="Cancelar set"
@@ -364,6 +592,18 @@ export default function SetPage() {
           onCancel={() => setCancelModal(false)}
         />
       )}
+
+      {deletingId && (
+        <ConfirmModal
+          title="Remover membro"
+          message="Tem certeza que deseja remover este membro do set? Todos os claims associados serão perdidos."
+          confirmLabel="Sim, remover"
+          confirmClass="btn-danger"
+          onConfirm={handleDeletePc}
+          onCancel={() => setDeletingId(null)}
+        />
+      )}
+
       {rankModal && (
         <ClaimRankModal
           photocard={rankModal}
@@ -371,6 +611,7 @@ export default function SetPage() {
           onClose={() => setRankModal(null)}
         />
       )}
+
       {showAddCard && (
         <AddPhotocardModal
           accessToken={token}
@@ -383,6 +624,16 @@ export default function SetPage() {
             setShowAddCard(false);
             toast.success('Membro adicionado! 🃏');
           }}
+        />
+      )}
+
+      {cropSrc && (
+        <ImageCropModal
+          src={cropSrc}
+          shape="rect"
+          aspect={16 / 9}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
         />
       )}
     </main>
@@ -398,8 +649,7 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
 
   if (phase === 'closed') return (
     <div className={`${styles.timerBanner} ${styles.timerClosed}`}>
-      <span>🔒</span>
-      <span>Claim encerrado</span>
+      <span>🔒</span><span>Claim encerrado</span>
       {formatted && <span className={styles.timerDate}>· {formatted}</span>}
     </div>
   );
@@ -408,12 +658,9 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
     <div className={`${styles.timerBanner} ${styles.timerLive}`}>
       <span className={styles.livePulse} />
       <span className={styles.timerValue}>
-        {/* Se foi o GOM que forçou Open sem ter chegado na hora, mostra diferente */}
         {apiStatus === 'Open' && timeLeft && !timeLeft.startsWith('+')
           ? `${timeLeft} adiantado`
-          : timeLeft
-            ? `+${timeLeft.replace(/^\+/, '')}`
-            : 'Aberto!'
+          : timeLeft ? `+${timeLeft.replace(/^\+/, '')}` : 'Aberto!'
         }
       </span>
       <span className={styles.timerLabel}>claim aberto! ⚡</span>
@@ -428,7 +675,6 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
     </div>
   );
 
-  // waiting
   return (
     <div className={styles.timerBanner}>
       <span className={styles.timerSub}>⏰ Claim abre em</span>
@@ -438,14 +684,18 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
   );
 }
 
-/* ── Member Row ── */
-function MemberRow({ pc, phase, claimed, claiming, userId, onClaim, onOpenRank }) {
+/* ── Member Row (modo normal) ──
+   isGom = true → sem blur, pode ver tudo antes do claim abrir.
+   Collector normal → blur em waiting/streaming.
+*/
+function MemberRow({ pc, phase, claimed, claiming, userId, isGom, onClaim, onOpenRank }) {
   const canClaim = (phase === 'open') && !claimed;
-  const blurred  = phase === 'waiting' || phase === 'streaming';
+  // GON nunca recebe blur — vê os membros sempre
+  const blurred  = !isGom && (phase === 'waiting' || phase === 'streaming');
   const isClosed = phase === 'closed';
-  const claims   = pc.claims || [];
+  const claims     = pc.claims || [];
   const claimCount = claims.length;
-  const myPos = claims.findIndex((c) => c.userId === userId);
+  const myPos      = claims.findIndex((c) => c.userId === userId);
 
   return (
     <div
@@ -453,7 +703,6 @@ function MemberRow({ pc, phase, claimed, claiming, userId, onClaim, onOpenRank }
       onClick={!blurred ? onOpenRank : undefined}
       title={!blurred ? 'Clique para ver o ranking' : undefined}
     >
-      {/* Blur overlay quando waiting/streaming */}
       {blurred && (
         <div className={styles.blurOverlay}>
           <span className={styles.blurMsg}>
@@ -463,7 +712,6 @@ function MemberRow({ pc, phase, claimed, claiming, userId, onClaim, onOpenRank }
       )}
 
       <div className={styles.memberInfo}>
-        {/* Quando blurred: renderiza placeholders anônimos, não os dados reais */}
         {blurred ? (
           <>
             <span className={styles.memberNameHidden} aria-hidden="true" />
@@ -475,9 +723,7 @@ function MemberRow({ pc, phase, claimed, claiming, userId, onClaim, onOpenRank }
             {pc.version && <span className={styles.memberVersion}>{pc.version}</span>}
             <div className={styles.memberTags}>
               {claimCount > 0 && (
-                <span className={styles.claimCountTag}>
-                  {claimCount} claim{claimCount !== 1 ? 's' : ''}
-                </span>
+                <span className={styles.claimCountTag}>{claimCount} claim{claimCount !== 1 ? 's' : ''}</span>
               )}
               {claimed && myPos >= 0 && (
                 <span className={styles.myPosTag}>Você #{myPos + 1}</span>
@@ -487,33 +733,83 @@ function MemberRow({ pc, phase, claimed, claiming, userId, onClaim, onOpenRank }
         )}
       </div>
 
-      {/* Claim circle button */}
       <button
-        className={`
-          ${styles.claimCircle}
-          ${claimed    ? styles.claimCircleDone   : ''}
-          ${canClaim   ? styles.claimCircleActive  : ''}
-          ${isClosed   ? styles.claimCircleClosed  : ''}
-        `}
+        className={`${styles.claimCircle} ${claimed ? styles.claimCircleDone : ''} ${canClaim ? styles.claimCircleActive : ''} ${isClosed ? styles.claimCircleClosed : ''}`}
         onClick={onClaim}
         disabled={!canClaim || claiming}
-        title={
-          isClosed  ? 'Claim encerrado' :
-          claimed   ? `Posição #${myPos + 1}` :
-          canClaim  ? 'Dar claim!' :
-          'Aguardando...'
-        }
+        title={isClosed ? 'Claim encerrado' : claimed ? `Posição #${myPos + 1}` : canClaim ? 'Dar claim!' : 'Aguardando...'}
       >
-        {claiming ? (
-          <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-        ) : isClosed ? (
-          '🔒'
-        ) : claimed ? (
-          '✓'
-        ) : (
-          '♡'
-        )}
+        {claiming
+          ? <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+          : isClosed ? '🔒' : claimed ? '✓' : '♡'
+        }
       </button>
+    </div>
+  );
+}
+
+/* ── Member Row Edit ── */
+function MemberRowEdit({
+  pc, index, isEditing, editingPc, savingPc, dragOver,
+  onDragStart, onDragOver, onDrop, onDragEnd,
+  onEdit, onCancelEdit, onSave, onDelete, onChange,
+}) {
+  return (
+    <div
+      className={`${styles.memberRow} ${styles.memberRowEdit} ${dragOver ? styles.memberRowDragOver : ''}`}
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+    >
+      <span className={styles.dragHandle} title="Arrastar para reordenar">⠿</span>
+
+      <div className={styles.memberInfo}>
+        {isEditing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <input
+              className="input"
+              style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+              placeholder="Nome do artista"
+              value={editingPc.artistName}
+              onChange={(e) => onChange('artistName', e.target.value)}
+              autoFocus
+            />
+            <input
+              className="input"
+              style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+              placeholder="Versão (opcional)"
+              value={editingPc.version}
+              onChange={(e) => onChange('version', e.target.value)}
+            />
+          </div>
+        ) : (
+          <>
+            <span className={styles.memberName}>{pc.artistName || 'Membro'}</span>
+            {pc.version && <span className={styles.memberVersion}>{pc.version}</span>}
+            {pc.order != null && (
+              <span style={{ fontSize: '0.65rem', color: 'var(--gray)', marginTop: 2 }}>ordem #{pc.order}</span>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className={styles.rowEditActions}>
+        {isEditing ? (
+          <>
+            <button className="btn btn-ghost btn-sm" style={{ padding: '5px 10px', fontSize: '0.78rem' }} onClick={onCancelEdit} disabled={savingPc}>✕</button>
+            <button className="btn btn-primary btn-sm" style={{ padding: '5px 12px', fontSize: '0.78rem' }} onClick={onSave} disabled={savingPc}>
+              {savingPc ? <span className="spinner" style={{ width: 12, height: 12 }} /> : '✓'}
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="btn btn-secondary btn-sm" style={{ padding: '5px 10px', fontSize: '0.78rem' }} onClick={onEdit} title="Editar">✏️</button>
+            <button className="btn btn-ghost btn-sm" style={{ padding: '5px 10px', fontSize: '0.78rem', color: '#c0392b' }} onClick={onDelete} title="Excluir">🗑️</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

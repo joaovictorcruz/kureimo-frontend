@@ -6,19 +6,17 @@ import AuthModal from './AuthModal';
 import styles from './Navbar.module.css';
 
 export default function Navbar() {
-  const { user, logout, isGom } = useAuth();
+  const { user, logout, isGom, profilePicUrl } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
-  const openLogin = () => { setAuthMode('login'); setShowAuth(true); setMenuOpen(false); };
+  const openLogin    = () => { setAuthMode('login');    setShowAuth(true); setMenuOpen(false); };
   const openRegister = () => { setAuthMode('register'); setShowAuth(true); setMenuOpen(false); };
-
   const handleLogout = () => { logout(); navigate('/'); setMenuOpen(false); };
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
@@ -28,6 +26,20 @@ export default function Navbar() {
   }, []);
 
   const initial = user?.username?.[0]?.toUpperCase() || '?';
+
+  // Avatar: foto de perfil se disponível, fallback para inicial
+  const AvatarSmall = ({ size = 32, fontSize = '0.75rem' }) => (
+    profilePicUrl ? (
+      <img
+        src={profilePicUrl}
+        alt={user?.username}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block', flexShrink: 0 }}
+        onError={(e) => { e.target.style.display = 'none'; }}
+      />
+    ) : (
+      <div className="avatar" style={{ width: size, height: size, fontSize }}>{initial}</div>
+    )
+  );
 
   return (
     <>
@@ -42,12 +54,12 @@ export default function Navbar() {
               <>
                 {isGom && (
                   <Link to="/dashboard" className={`btn btn-ghost btn-sm ${styles.navLink}`}>
-                     Meus Sets
+                    📦 Meus Sets
                   </Link>
                 )}
                 <div className={styles.avatarWrap} ref={menuRef}>
                   <button className={styles.avatarBtn} onClick={() => setMenuOpen((v) => !v)}>
-                    <div className="avatar">{initial}</div>
+                    <AvatarSmall size={32} fontSize="0.75rem" />
                     <span className={styles.username}>{user.username}</span>
                     <span className={styles.caret} style={{ transform: menuOpen ? 'rotate(180deg)' : 'none' }}>▾</span>
                   </button>
@@ -56,7 +68,7 @@ export default function Navbar() {
                     <div className={styles.dropdown}>
                       {/* User info */}
                       <div className={styles.dropdownUser}>
-                        <div className="avatar" style={{ width: 34, height: 34, fontSize: '0.78rem' }}>{initial}</div>
+                        <AvatarSmall size={34} fontSize="0.78rem" />
                         <div>
                           <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--ink)' }}>{user.username}</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--gray)' }}>{user.email}</div>
@@ -70,7 +82,6 @@ export default function Navbar() {
 
                       <hr className="divider" style={{ margin: '10px 0' }} />
 
-                      {/* Navigation items */}
                       <Link to="/perfil" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
                         👤 Meu perfil
                       </Link>
@@ -91,12 +102,8 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <button className="btn btn-ghost btn-sm" onClick={openLogin}>
-                  Entrar
-                </button>
-                <button className="btn btn-primary btn-sm" onClick={openRegister}>
-                  Cadastrar ✨
-                </button>
+                <button className="btn btn-ghost btn-sm" onClick={openLogin}>Entrar</button>
+                <button className="btn btn-primary btn-sm" onClick={openRegister}>Cadastrar ✨</button>
               </>
             )}
           </div>

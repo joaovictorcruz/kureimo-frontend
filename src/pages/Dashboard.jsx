@@ -9,10 +9,10 @@ import ConfirmModal from '../components/ConfirmModal';
 import styles from './Dashboard.module.css';
 
 const STATUS_LABELS = {
-  Draft:     { label: 'Rascunho',  cls: 'badge-gray', emoji: '📝' },
-  Published: { label: 'Publicado', cls: 'badge-lilac', emoji: '📢' },
-  Open:      { label: 'Ao vivo',   cls: 'badge-live',  emoji: '🔴' },
-  Closed:    { label: 'Encerrado', cls: 'badge-gray',  emoji: '🔒' },
+  Draft:     { label: 'Rascunho',  cls: 'badge-gray',  emoji: '📝' },
+  Published: { label: 'Publicado', cls: 'badge-lilac',  emoji: '📢' },
+  Open:      { label: 'Ao vivo',   cls: 'badge-live',   emoji: '🔴' },
+  Closed:    { label: 'Encerrado', cls: 'badge-gray',   emoji: '🔒' },
 };
 
 const PAGE_SIZE = 10;
@@ -31,12 +31,11 @@ export default function Dashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [actioningId, setActioningId] = useState(null);
 
-  // Modals de confirmação
   const [closeModal, setCloseModal]     = useState(null);
   const [deleteModal, setDeleteModal]   = useState(null);
   const [historyModal, setHistoryModal] = useState(false);
   const [editModal, setEditModal]       = useState(null);
-  const [cancelModal, setCancelModal]   = useState(null); // set obj
+  const [cancelModal, setCancelModal]   = useState(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -67,7 +66,6 @@ export default function Dashboard() {
     toast.success('Link copiado! 🔗');
   };
 
-  // ── Publicar ──
   const handlePublish = async (set) => {
     setActioningId(set.id);
     try {
@@ -81,7 +79,6 @@ export default function Dashboard() {
     }
   };
 
-  // ── Cancelar set Published (via modal) ──
   const handleCancel = async () => {
     const set = cancelModal;
     setCancelModal(null);
@@ -98,7 +95,6 @@ export default function Dashboard() {
     }
   };
 
-  // ── Fechar (via modal) ──
   const handleClose = async () => {
     const set = closeModal;
     setCloseModal(null);
@@ -114,7 +110,6 @@ export default function Dashboard() {
     }
   };
 
-  // ── Deletar set individual (via modal) ──
   const handleDeleteOne = async () => {
     const set = deleteModal;
     setDeleteModal(null);
@@ -131,7 +126,6 @@ export default function Dashboard() {
     }
   };
 
-  // ── Limpar histórico completo (via modal) ──
   const handleDeleteHistory = async () => {
     setHistoryModal(false);
     setLoading(true);
@@ -152,15 +146,15 @@ export default function Dashboard() {
     </main>
   );
 
-  const liveSets    = sets.filter((s) => s.status === 'Open').length;
-  const closedSets  = sets.filter((s) => s.status === 'Closed').length;
-  const hasClosed   = sets.some((s) => s.status === 'Closed');
+  const liveSets   = sets.filter((s) => s.status === 'Open').length;
+  const closedSets = sets.filter((s) => s.status === 'Closed').length;
+  const hasClosed  = sets.some((s) => s.status === 'Closed');
 
   return (
     <main className={styles.page}>
       <div className="page-container">
 
-        {/* ── Header ── */}
+        {/* Header */}
         <div className={styles.header}>
           <div>
             <span className="badge badge-pink" style={{ marginBottom: 12 }}>👑 Painel GOM</span>
@@ -181,13 +175,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Stats ── */}
+        {/* Stats */}
         <div className={styles.statsGrid}>
           {[
-            { label: 'Total de sets', value: totalCount,  icon: '📦', color: 'var(--blush-light)'  },
-            { label: 'Ao vivo',       value: liveSets,    icon: '🔴', color: 'var(--rose-light)'   },
+            { label: 'Total de sets', value: totalCount, icon: '📦', color: 'var(--blush-light)'  },
+            { label: 'Ao vivo',       value: liveSets,   icon: '🔴', color: 'var(--rose-light)'   },
             { label: 'Publicados',    value: sets.filter((s) => s.status === 'Published').length, icon: '📢', color: 'var(--peach-light)' },
-            { label: 'Fechados',      value: closedSets,  icon: '🔒', color: 'var(--butter-light)' },
+            { label: 'Fechados',      value: closedSets, icon: '🔒', color: 'var(--butter-light)' },
           ].map((s) => (
             <div key={s.label} className={`card ${styles.statCard}`} style={{ background: s.color }}>
               <div className={styles.statIcon}>{s.icon}</div>
@@ -197,7 +191,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* ── Sets list ── */}
+        {/* Sets list */}
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
             <div className="spinner" style={{ width: 40, height: 40 }} />
@@ -254,7 +248,6 @@ export default function Dashboard() {
                         </div>
                       )}
 
-                      {/* Dica contextual para sets em Draft */}
                       {set.status === 'Draft' && (
                         <div className={styles.draftHint}>
                           {!set.totalPhotocards ? (
@@ -272,44 +265,51 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* Actions */}
+                    {/* ── Actions ──
+                        Draft     → Ver · 🔗 · ✏️ Editar · 📢 Publicar · Cancelar
+                        Published → Ver · 🔗 · Cancelar
+                        Open      → Ver · 🔗 · 🔒 Fechar
+                        Closed    → Ver · 🔗 · Excluir
+                    */}
                     <div className={styles.setActions}>
                       <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/set/${set.accessToken}`)}>
                         Ver →
                       </button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => copyLink(set)}>
+
+                      <button className="btn btn-secondary btn-sm" onClick={() => copyLink(set)} title="Copiar link">
                         🔗
                       </button>
+
+                      {/* Draft only */}
                       {set.status === 'Draft' && (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => setEditModal(set)}
-                        >
+                        <button className="btn btn-secondary btn-sm" onClick={() => setEditModal(set)}>
                            Editar
                         </button>
                       )}
                       {set.status === 'Draft' && !!set.totalPhotocards && (
-                        <button
-                          className="btn btn-primary btn-sm"
-                          disabled={isActioning}
-                          onClick={() => handlePublish(set)}
-                        >
+                        <button className="btn btn-primary btn-sm" disabled={isActioning} onClick={() => handlePublish(set)}>
                           {isActioning
                             ? <span className="spinner" style={{ width: 14, height: 14 }} />
                             : '📢 Publicar'
                           }
                         </button>
                       )}
-                      {set.status === 'Published' || set.status === 'Draft' && (
+
+                      {/* Draft ou Published → Cancelar */}
+                      {(set.status === 'Draft' || set.status === 'Published') && (
                         <button className="btn btn-danger btn-sm" disabled={isActioning} onClick={() => setCancelModal(set)}>
                           {isActioning ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Cancelar'}
                         </button>
                       )}
+
+                      {/* Open → Fechar */}
                       {set.status === 'Open' && (
                         <button className="btn btn-danger btn-sm" disabled={isActioning} onClick={() => setCloseModal(set)}>
                           {isActioning ? <span className="spinner" style={{ width: 14, height: 14 }} /> : '🔒 Fechar'}
                         </button>
                       )}
+
+                      {/* Closed → Excluir */}
                       {isClosed && (
                         <button className="btn btn-ghost btn-sm" disabled={isActioning} onClick={() => setDeleteModal(set)}
                           style={{ color: '#c0392b' }}>
@@ -322,24 +322,13 @@ export default function Dashboard() {
               })}
             </div>
 
-            {/* ── Paginação ── */}
             {totalPages > 1 && (
               <div className={styles.pagination}>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
+                <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
                   ← Anterior
                 </button>
-                <span className={styles.pageInfo}>
-                  Página {page} de {totalPages}
-                </span>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  disabled={page === totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
+                <span className={styles.pageInfo}>Página {page} de {totalPages}</span>
+                <button className="btn btn-secondary btn-sm" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
                   Próxima →
                 </button>
               </div>
@@ -348,7 +337,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* ── Modais ── */}
+      {/* Modais */}
       {editModal && (
         <EditSetModal
           set={editModal}

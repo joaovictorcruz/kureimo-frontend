@@ -22,10 +22,12 @@
   justify-content: center;
 }
 
-/* ── Two-column layout ── */
+/* ── Two-column layout ──
+   Post fica mais estreito (0.85fr) e membros ganham mais espaço (1fr)
+   para evitar o card enorme que o usuário reportou. No mobile empilha. */
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
   gap: 28px;
   align-items: start;
 }
@@ -140,6 +142,36 @@
   gap: 4px;
 }
 
+/* Botão alterar imagem */
+.changeImgBtn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 6px 13px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(4px);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity 0.18s, background 0.15s, transform 0.12s;
+}
+
+.setImgWrap:hover .changeImgBtn { opacity: 1; }
+.changeImgBtn:hover { background: rgba(0,0,0,0.72); transform: scale(1.04); }
+.changeImgBtn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+@media (hover: none) {
+  .changeImgBtn { opacity: 1; }
+}
+
 .liveDot {
   width: 7px;
   height: 7px;
@@ -210,7 +242,7 @@
   line-height: 1.45;
 }
 
-/* Hidden placeholders (when blurred — keep names off DOM) */
+/* Hidden placeholders (blurred) */
 .memberNameHidden {
   display: block;
   height: 12px;
@@ -250,6 +282,8 @@
   justify-content: space-between;
   margin-bottom: 12px;
   padding: 0 2px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .memberListTitle {
@@ -301,6 +335,55 @@
   box-shadow: var(--shadow-soft);
   transform: translateX(3px);
   border-color: rgba(242,134,149,0.4);
+}
+
+/* Edit mode: sem hover translate, cursor default */
+.memberRowEdit {
+  cursor: default;
+}
+.memberRowEdit:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--card-border);
+}
+
+/* Drag state */
+.memberRowDragging {
+  opacity: 0.45;
+  border: 2px dashed var(--rose);
+  background: var(--rose-light) !important;
+  transform: none !important;
+  box-shadow: none !important;
+  cursor: grabbing;
+}
+
+.memberRowDragOver {
+  border-color: var(--rose);
+  background: rgba(242,134,149,0.07) !important;
+  transform: none !important;
+}
+
+/* Drag handle */
+.dragHandle {
+  color: var(--gray);
+  font-size: 1rem;
+  cursor: grab;
+  flex-shrink: 0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+  user-select: none;
+  line-height: 1;
+}
+.dragHandle:hover { color: var(--rose-dark); background: var(--rose-light); }
+.dragHandle:active { cursor: grabbing; }
+
+/* Edit action buttons inside the row */
+.rowEditActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: center;
 }
 
 /* Blur overlay */

@@ -1,7 +1,7 @@
 .modal {
   width: 100%;
-  max-width: 540px;
-  padding: 28px;
+  max-width: 460px;
+  padding: 24px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
@@ -13,25 +13,24 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 0;
 }
 
 .artistName {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   color: var(--ink);
   line-height: 1.2;
 }
 
 .version {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--gray);
   margin-top: 3px;
 }
 
 .empty {
   text-align: center;
-  padding: 40px 20px;
+  padding: 36px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -40,61 +39,88 @@
   font-size: 0.9rem;
 }
 
-.rankHeader {
-  display: grid;
-  grid-template-columns: 52px 1fr 110px auto;
-  gap: 8px;
-  padding: 0 12px 8px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  color: var(--gray);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
+/* ── Lista de ranks ── */
 .rankList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   overflow-y: auto;
   flex: 1;
+  padding-right: 2px;
 }
 
+/* ── Cada linha: posição + mini-card ── */
 .rankRow {
-  display: grid;
-  grid-template-columns: 52px 1fr 110px auto;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  background: rgba(255,255,255,0.6);
-  transition: background 0.12s;
-}
-.rankRow:hover { background: rgba(255,255,255,0.9); }
-
-.myRow {
-  background: linear-gradient(90deg, rgba(242,134,149,0.08), rgba(242,191,180,0.12));
-  border: 1.5px solid rgba(242,134,149,0.25);
+  gap: 10px;
 }
 
+/* Posição (fora do mini-card) */
 .pos {
-  font-size: 1rem;
+  flex-shrink: 0;
+  width: 36px;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.medal {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.posNum {
+  font-size: 0.78rem;
   font-weight: 900;
-  color: var(--rose-dark);
+  color: var(--gray);
   font-variant-numeric: tabular-nums;
 }
 
-.rankUser {
+/* Mini-card (nome + contato + horário) */
+.miniCard {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.65);
+  border: 1.5px solid var(--card-border);
+  min-width: 0;
+  transition: background 0.12s;
+}
+
+.miniCard:hover {
+  background: rgba(255,255,255,0.9);
+}
+
+.miniCardMe {
+  background: linear-gradient(90deg, rgba(242,134,149,0.08), rgba(242,191,180,0.14));
+  border-color: rgba(242,134,149,0.3);
+}
+
+/* Lado esquerdo do mini-card: avatar + info */
+.miniLeft {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1;
 }
 
-.rankUsername {
+.miniInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.miniUsername {
+  font-size: 0.85rem;
   font-weight: 700;
-  font-size: 0.88rem;
   color: var(--ink-soft);
   white-space: nowrap;
   overflow: hidden;
@@ -102,12 +128,13 @@
 }
 
 .meMark {
+  font-size: 0.72rem;
   color: var(--rose-dark);
-  font-size: 0.75rem;
+  font-weight: 800;
 }
 
-.rankPhone {
-  font-size: 0.75rem;
+.miniPhone {
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--gray);
   white-space: nowrap;
@@ -115,19 +142,22 @@
   text-overflow: ellipsis;
 }
 
-.rankTime {
-  font-size: 0.75rem;
+/* Horário (direita do mini-card) */
+.miniTime {
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--gray);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
-.rankMs {
+.miniMs {
   color: var(--rose);
   font-weight: 900;
 }
 
+/* Footer */
 .footer {
   margin-top: 14px;
   padding-top: 12px;

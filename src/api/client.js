@@ -5,7 +5,7 @@ const BASE_URL =
     ? 'https://api.kureimo.com'
     : 'https://localhost:7011';
 
-export const SIGNALR_URL = `${BASE_URL}/hubs/claims`;
+export const SIGNALR_URL = `${BASE_URL}/hubs/set`;
 
 const getToken = () => localStorage.getItem('kureimo_token');
 
@@ -68,10 +68,16 @@ export const authApi = {
 export const setsApi = {
   getByToken: (accessToken) => request('GET', `/sets/${accessToken}`),
   getMine: (page = 1, pageSize = 10) => request('GET', `/sets/mine?page=${page}&pageSize=${pageSize}`),
-  create: (formData) => requestFormData('POST', '/sets', formData),   // multipart/form-data
+  create: (formData) => requestFormData('POST', '/sets', formData),
   update: (accessToken, dto) => request('PUT', `/sets/${accessToken}`, dto),
   updateImage: (accessToken, formData) => requestFormData('PUT', `/sets/${accessToken}/image`, formData),
   addPhotocard: (accessToken, dto) => request('POST', `/sets/${accessToken}/photocards`, dto),
+  updatePhotocard: (accessToken, photocardId, dto) =>
+    request('PUT', `/sets/${accessToken}/photocards/${photocardId}`, dto),
+  deletePhotocard: (accessToken, photocardId) =>
+    request('DELETE', `/sets/${accessToken}/photocards/${photocardId}`),
+  reorderPhotocards: (accessToken, orderedIds) =>
+    request('PUT', `/sets/${accessToken}/photocards/reorder`, { orderedIds }),
   publish: (accessToken) => request('POST', `/sets/${accessToken}/publish`),
   open: (accessToken) => request('POST', `/sets/${accessToken}/open`),
   close: (accessToken) => request('POST', `/sets/${accessToken}/close`),
