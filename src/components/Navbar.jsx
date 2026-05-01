@@ -42,7 +42,7 @@ export default function Navbar() {
               <>
                 {isGom && (
                   <Link to="/dashboard" className={`btn btn-ghost btn-sm ${styles.navLink}`}>
-                    📦 Meus Sets
+                     Meus Sets
                   </Link>
                 )}
                 <div className={styles.avatarWrap} ref={menuRef}>

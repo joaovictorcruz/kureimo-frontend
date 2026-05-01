@@ -24,7 +24,31 @@ const request = async (method, path, body) => {
 
   const data = await res.json();
   if (!res.ok) {
-    // Normaliza o campo de mensagem independente do formato da API
+    const message = data?.error || data?.detail || data?.title || data?.message || 'Erro inesperado.';
+    const err = new Error(message);
+    err.status = res.status;
+    err.body = data;
+    throw err;
+  }
+  return data;
+};
+
+// Requisição multipart/form-data (sem Content-Type para o browser setar o boundary)
+const requestFormData = async (method, path, formData) => {
+  const headers = {};
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers,
+    body: formData,
+  });
+
+  if (res.status === 204) return null;
+
+  const data = await res.json();
+  if (!res.ok) {
     const message = data?.error || data?.detail || data?.title || data?.message || 'Erro inesperado.';
     const err = new Error(message);
     err.status = res.status;
@@ -44,8 +68,9 @@ export const authApi = {
 export const setsApi = {
   getByToken: (accessToken) => request('GET', `/sets/${accessToken}`),
   getMine: (page = 1, pageSize = 10) => request('GET', `/sets/mine?page=${page}&pageSize=${pageSize}`),
-  create: (dto) => request('POST', '/sets', dto),
+  create: (formData) => requestFormData('POST', '/sets', formData),   // multipart/form-data
   update: (accessToken, dto) => request('PUT', `/sets/${accessToken}`, dto),
+  updateImage: (accessToken, formData) => requestFormData('PUT', `/sets/${accessToken}/image`, formData),
   addPhotocard: (accessToken, dto) => request('POST', `/sets/${accessToken}/photocards`, dto),
   publish: (accessToken) => request('POST', `/sets/${accessToken}/publish`),
   open: (accessToken) => request('POST', `/sets/${accessToken}/open`),
@@ -66,5 +91,6 @@ export const usersApi = {
   get: (id) => request('GET', `/users/${id}`),
   update: (id, dto) => request('PUT', `/users/${id}`, dto),
   updatePassword: (id, dto) => request('PUT', `/users/${id}/password`, dto),
+  updateProfilePic: (id, formData) => requestFormData('PUT', `/users/${id}/profile-pic`, formData),
   delete: (id) => request('DELETE', `/users/${id}`),
 };

@@ -1,6 +1,6 @@
 .modal {
   width: 100%;
-  max-width: 460px;
+  max-width: 540px;
   padding: 28px;
   max-height: 85vh;
   display: flex;
@@ -42,7 +42,7 @@
 
 .rankHeader {
   display: grid;
-  grid-template-columns: 52px 1fr auto;
+  grid-template-columns: 52px 1fr 110px auto;
   gap: 8px;
   padding: 0 12px 8px;
   font-size: 0.7rem;
@@ -62,7 +62,7 @@
 
 .rankRow {
   display: grid;
-  grid-template-columns: 52px 1fr auto;
+  grid-template-columns: 52px 1fr 110px auto;
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
@@ -104,6 +104,15 @@
 .meMark {
   color: var(--rose-dark);
   font-size: 0.75rem;
+}
+
+.rankPhone {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .rankTime {

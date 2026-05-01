@@ -1,22 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { usersApi } from '../api/client';
 import styles from './ProfilePage.module.css';
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const ALLOWED_IMAGE_EXTS = '.jpg,.jpeg,.png,.webp';
+
 export default function ProfilePage() {
   const { user, logout, isGom } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const avatarInputRef = useRef(null);
 
   const [editMode, setEditMode] = useState(false);
   const [passMode, setPassMode] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Dados completos do usuário vindos da API (inclui phoneNumber, profilePicUrl)
+  const [profileData, setProfileData] = useState(null);
 
   const [profile, setProfile] = useState({
-    username: user?.username || '',
-    email: user?.email || '',
+    username: '',
+    email: '',
+    phoneNumber: '',
   });
 
   const [passwords, setPasswords] = useState({
@@ -25,12 +34,59 @@ export default function ProfilePage() {
     confirmPassword: '',
   });
 
+  useEffect(() => {
+    if (!user) return;
+    usersApi.get(user.id).then((data) => {
+      setProfileData(data);
+      setProfile({
+        username: data.username || '',
+        email: data.email || '',
+        phoneNumber: data.phoneNumber || '',
+      });
+    }).catch(() => {
+      // fallback para dados do token
+      setProfile({
+        username: user.username || '',
+        email: user.email || '',
+        phoneNumber: '',
+      });
+    });
+  }, [user]);
+
   if (!user) {
     navigate('/');
     return null;
   }
 
-  const initial = user.username?.[0]?.toUpperCase() || '?';
+  const displayData = profileData || user;
+  const initial = (displayData.username || '?')[0].toUpperCase();
+  const avatarUrl = profileData?.profilePicUrl || null;
+
+  // ── Upload foto de perfil ──
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error('Formato inválido. Use JPG, JPEG, PNG ou WEBP.');
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await usersApi.updateProfilePic(user.id, formData);
+      toast.success('Foto de perfil atualizada! 🌸');
+      // Recarrega dados para pegar a nova URL
+      const updated = await usersApi.get(user.id);
+      setProfileData(updated);
+    } catch (err) {
+      toast.error(err?.message || 'Erro ao atualizar foto de perfil.');
+    } finally {
+      setUploadingAvatar(false);
+      // Reset input para permitir re-upload do mesmo arquivo
+      e.target.value = '';
+    }
+  };
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -40,9 +96,12 @@ export default function ProfilePage() {
       await usersApi.update(user.id, {
         username: profile.username,
         email: profile.email,
+        phoneNumber: profile.phoneNumber,
       });
       toast.success('Perfil atualizado! ✨');
       setEditMode(false);
+      // Atualiza dados locais
+      setProfileData((prev) => prev ? { ...prev, ...profile } : null);
     } catch (err) {
       toast.error(err?.message || 'Erro ao atualizar perfil.');
     } finally {
@@ -97,10 +156,33 @@ export default function ProfilePage() {
           {/* ── Sidebar ── */}
           <aside className={styles.sidebar}>
             <div className={`card ${styles.profileCard}`}>
-              {/* Avatar grande */}
-              <div className={styles.bigAvatar}>{initial}</div>
-              <h2 className={styles.profileName}>{user.username}</h2>
-              <p className={styles.profileEmail}>{user.email}</p>
+              {/* Avatar grande com upload */}
+              <div className={styles.avatarWrapper}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Foto de perfil" className={styles.bigAvatarImg} />
+                ) : (
+                  <div className={styles.bigAvatar}>{initial}</div>
+                )}
+                <button
+                  className={styles.avatarEditBtn}
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  title="Trocar foto de perfil"
+                >
+                  {uploadingAvatar ? (
+                    <span className="spinner" style={{ width: 14, height: 14 }} />
+                  ) : '📷'}
+                </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept={ALLOWED_IMAGE_EXTS}
+                  onChange={handleAvatarChange}
+                  style={{ display: 'none' }}
+                />
+              </div>
+              <h2 className={styles.profileName}>{displayData.username || user.username}</h2>
+              <p className={styles.profileEmail}>{displayData.email || user.email}</p>
               {user.role && (
                 <span className={`badge ${isGom ? 'badge-pink' : 'badge-lilac'}`} style={{ marginTop: 8 }}>
                   {isGom ? '👑 GOM' : '🌸 Usuário'}
@@ -145,10 +227,10 @@ export default function ProfilePage() {
                 </div>
                 <hr className="divider" />
                 <div className={styles.infoGrid}>
-                  <InfoRow label="Usuário" value={`@${user.username}`} />
-                  <InfoRow label="E-mail" value={user.email} />
+                  <InfoRow label="Usuário" value={`@${displayData.username || user.username || ''}`} />
+                  <InfoRow label="E-mail" value={displayData.email || user.email} />
                   <InfoRow label="Tipo de conta" value={isGom ? 'GOM (Group Order Manager)' : 'Usuário padrão'} />
-                  <InfoRow label="ID da conta" value={user.id} mono />
+                  <InfoRow label="Celular" value={profileData?.phoneNumber || '—'} />
                 </div>
 
                 <div className={styles.dangerZone}>
@@ -191,6 +273,16 @@ export default function ProfilePage() {
                       placeholder="seu@email.com"
                       value={profile.email}
                       onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Celular</label>
+                    <input
+                      className="input"
+                      type="tel"
+                      placeholder="(11) 99999-9999"
+                      value={profile.phoneNumber}
+                      onChange={(e) => setProfile((p) => ({ ...p, phoneNumber: e.target.value }))}
                     />
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>

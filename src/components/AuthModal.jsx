@@ -5,7 +5,7 @@ import Logo from './Logo';
 
 export default function AuthModal({ initialMode = 'login', onClose }) {
   const [mode, setMode] = useState(initialMode);
-  const [form, setForm] = useState({ username: '', email: '', password: '', isGon: false });
+  const [form, setForm] = useState({ username: '', email: '', password: '', phoneNumber: '', isGon: false });
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const toast = useToast();
@@ -20,7 +20,7 @@ export default function AuthModal({ initialMode = 'login', onClose }) {
         await login(form.email, form.password);
         toast.success('Bem-vindo(a) de volta!');
       } else {
-        await register(form.username, form.email, form.password, form.isGon);
+        await register(form.username, form.email, form.password, form.phoneNumber, form.isGon);
         toast.success('Conta criada! Seja bem-vinda ✨');
       }
       onClose();
@@ -85,6 +85,20 @@ export default function AuthModal({ initialMode = 'login', onClose }) {
               required
             />
           </div>
+
+          {mode === 'register' && (
+            <div className="field">
+              <label>Celular *</label>
+              <input
+                className="input"
+                type="tel"
+                placeholder="(11) 99999-9999"
+                value={form.phoneNumber}
+                onChange={(e) => set('phoneNumber', e.target.value)}
+                required
+              />
+            </div>
+          )}
 
           {mode === 'register' && (
             <label style={{

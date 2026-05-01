@@ -285,7 +285,7 @@ export default function Dashboard() {
                           className="btn btn-secondary btn-sm"
                           onClick={() => setEditModal(set)}
                         >
-                          ✏️ Editar
+                           Editar
                         </button>
                       )}
                       {set.status === 'Draft' && !!set.totalPhotocards && (

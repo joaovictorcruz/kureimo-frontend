@@ -30,6 +30,7 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
             <div className={styles.rankHeader}>
               <span>Posição</span>
               <span>Usuário</span>
+              <span>Contato</span>
               <span>Horário</span>
             </div>
             <div className={styles.rankList}>
@@ -58,6 +59,9 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
                         {c.username || c.userName || 'usuário'}
                         {isMe && <span className={styles.meMark}> (você)</span>}
                       </span>
+                    </div>
+                    <div className={styles.rankPhone}>
+                      {c.phoneNumber || '—'}
                     </div>
                     <div className={styles.rankTime}>
                       {time}<span className={styles.rankMs}>.{ms}</span>

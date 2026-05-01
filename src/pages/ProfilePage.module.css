@@ -32,6 +32,14 @@
   gap: 6px;
 }
 
+/* Avatar com upload */
+.avatarWrapper {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 8px;
+}
+
 .bigAvatar {
   width: 72px;
   height: 72px;
@@ -43,8 +51,43 @@
   font-size: 1.8rem;
   font-weight: 800;
   color: white;
-  margin-bottom: 8px;
   box-shadow: 0 6px 24px rgba(242,134,149,0.35);
+}
+
+.bigAvatarImg {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 6px 24px rgba(242,134,149,0.35);
+  display: block;
+}
+
+.avatarEditBtn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px solid var(--card-border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.avatarEditBtn:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-card);
+}
+.avatarEditBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .profileName {
