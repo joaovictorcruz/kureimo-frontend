@@ -22,8 +22,8 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
 
         {claims.length === 0 ? (
           <div className={styles.empty}>
-            <span style={{ fontSize: '2rem' }}>🌸</span>
-            <p>Nenhum claim ainda.</p>
+            <span style={{ fontSize: '1.5rem' }}> <p>Nenhum claim ainda.</p></span>
+           
           </div>
         ) : (
           <>

@@ -7,7 +7,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 40px;
+  margin-bottom: 36px;
   gap: 20px;
   flex-wrap: wrap;
 }
@@ -15,33 +15,45 @@
 /* Stats */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
-  margin-bottom: 40px;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 12px;
+  margin-bottom: 36px;
 }
 
 .statCard {
   padding: 22px 18px;
   text-align: center;
-  border: none !important;
+  border: 1px solid var(--card-border) !important;
   box-shadow: var(--shadow-soft) !important;
 }
 
-.statIcon { font-size: 1.6rem; margin-bottom: 8px; }
+/* Ícone do stat card — container com leve highlight */
+.statIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  color: var(--ink-soft);
+}
 
 .statValue {
   font-family: var(--font-display);
-  font-size: 2.2rem;
+  font-size: 2rem;
   color: var(--ink);
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .statLabel {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--ink-soft);
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* Empty */
@@ -51,39 +63,52 @@
   margin-top: 20px;
 }
 
+.emptyIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--rose-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rose-dark);
+  margin: 0 auto 18px;
+}
+
 /* Sets list */
 .setsList {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .setCard {
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 16px 20px;
+  gap: 16px;
+  padding: 15px 18px;
   flex-wrap: wrap;
   transition: transform 0.18s, box-shadow 0.18s;
   cursor: default;
 }
 
 .setCard:hover {
-  transform: translateX(4px);
+  transform: translateX(3px);
   box-shadow: var(--shadow-pop);
 }
 
 /* Thumbnail */
 .setThumb {
-  width: 72px;
-  height: 72px;
+  width: 68px;
+  height: 68px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--blush-light), var(--butter-light));
+  background: var(--blush-light);
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid var(--card-border);
 }
 
 .setThumb img {
@@ -93,13 +118,15 @@
 }
 
 .setThumbPlaceholder {
-  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Set info */
 .setInfo {
   flex: 1;
-  min-width: 180px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -113,18 +140,21 @@
 }
 
 .setName {
-  font-size: 1rem;
+  font-size: 0.97rem;
   font-weight: 800;
   color: var(--ink);
   font-family: var(--font-body);
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .claimDate {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.75rem;
+  font-size: 0.73rem;
   color: var(--gray);
   font-weight: 700;
 }
@@ -132,9 +162,10 @@
 /* Actions */
 .setActions {
   display: flex;
-  gap: 8px;
+  gap: 7px;
   flex-shrink: 0;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 /* Draft hint */
@@ -142,15 +173,15 @@
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  margin-top: 7px;
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
+  margin-top: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
   background: var(--butter-light);
-  border: 1px solid rgba(242,230,181,0.8);
+  border: 1px solid rgba(242,230,181,0.7);
 }
 
 .draftHint span {
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: var(--ink-soft);
   line-height: 1.4;
@@ -158,12 +189,12 @@
 
 .draftHintIcon {
   flex-shrink: 0;
-  font-size: 0.8rem !important;
+  margin-top: 1px;
 }
 
 /* Closed set visual */
 .setCardClosed {
-  opacity: 0.7;
+  opacity: 0.68;
 }
 .setCardClosed:hover {
   transform: none;
@@ -178,11 +209,11 @@
   gap: 16px;
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1.5px solid var(--card-border);
+  border-top: 1px solid var(--card-border);
 }
 
 .pageInfo {
-  font-size: 0.85rem;
+  font-size: 0.83rem;
   font-weight: 700;
   color: var(--gray);
 }

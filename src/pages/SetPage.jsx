@@ -10,6 +10,27 @@ import ClaimRankModal from '../components/ClaimRankModal';
 import ConfirmModal from '../components/ConfirmModal';
 import ImageCropModal from '../components/ImageCropModal';
 import styles from './SetPage.module.css';
+import {
+  Lock,
+  Radio,
+  Clock,
+  Zap,
+  Image as ImageIcon,
+  Megaphone,
+  XCircle,
+  Link as LinkIcon,
+  Plus,
+  Pencil,
+  Check,
+  Trash2,
+  GripVertical,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Heart,
+  Crown,
+  UserCircle2,
+} from 'lucide-react';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const ALLOWED_IMAGE_EXTS  = '.jpg,.jpeg,.png,.webp';
@@ -113,7 +134,7 @@ export default function SetPage() {
         setClaimedIds(ids);
       }
     } catch {
-      toast.error('Set não encontrado ou sem acesso 😢');
+      toast.error('Set não encontrado ou sem acesso');
     } finally {
       setLoading(false);
     }
@@ -143,7 +164,7 @@ export default function SetPage() {
         });
         return { ...prev, photocards: pcs };
       });
-      toast.success('Claim feito! Você está na fila! 🎉');
+      toast.success('Claim feito! Você está na fila!');
       spawnHearts(e.clientX, e.clientY);
     } catch (err) {
       if (err?.status === 409) toast.error('Você já deu claim nesse photocard!');
@@ -183,7 +204,7 @@ export default function SetPage() {
   const handlePublish = async () => {
     try {
       await setsApi.publish(token);
-      toast.success('Set publicado! 📢');
+      toast.success('Set publicado!');
       fetchSet();
     } catch (err) {
       toast.error(err?.message || 'Erro ao publicar.');
@@ -193,7 +214,7 @@ export default function SetPage() {
   const handleClose = async () => {
     try {
       await setsApi.close(token);
-      toast.success('Claim encerrado! 🔒');
+      toast.success('Claim encerrado!');
       fetchSet();
     } catch (err) {
       toast.error(err?.message || 'Erro ao fechar o claim.');
@@ -217,7 +238,7 @@ export default function SetPage() {
             : pc
         ),
       } : prev);
-      toast.success('Membro atualizado! ✨');
+      toast.success('Membro atualizado!');
       setEditingPc(null);
     } catch (err) {
       toast.error(err?.message || 'Erro ao atualizar membro.');
@@ -295,7 +316,7 @@ export default function SetPage() {
       const formData = new FormData();
       formData.append('file', blob, 'set-image.jpg');
       await setsApi.updateImage(token, formData);
-      toast.success('Imagem atualizada! 🖼️');
+      toast.success('Imagem atualizada!');
       fetchSet();
     } catch (err) {
       toast.error(err?.message || 'Erro ao atualizar imagem.');
@@ -309,7 +330,7 @@ export default function SetPage() {
   // ── Renders ──
   if (loading) return (
     <main className={styles.loadingWrap}>
-      <div className="spinner" style={{ width: 40, height: 40 }} />
+      <Loader2 size={40} strokeWidth={1.5} style={{ color: 'var(--rose)', animation: 'spin 1s linear infinite' }} />
       <p style={{ color: 'var(--gray)', marginTop: 16 }}>Carregando o set...</p>
     </main>
   );
@@ -317,7 +338,9 @@ export default function SetPage() {
   if (!set) return (
     <main className={styles.loadingWrap}>
       <div className="card" style={{ padding: 48, textAlign: 'center', maxWidth: 400 }}>
-        <div style={{ fontSize: '3rem', marginBottom: 16 }}>😢</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <XCircle size={48} strokeWidth={1.5} style={{ color: 'var(--gray)' }} />
+        </div>
         <h2>Set não encontrado</h2>
         <p style={{ color: 'var(--gray)', marginTop: 8 }}>Verifique o link com seu GOM.</p>
       </div>
@@ -329,7 +352,6 @@ export default function SetPage() {
   const fontColor = set.fontColor || null;
   const fontCss   = set.fontStyle ? FONT_MAP[set.fontStyle] || `'${set.fontStyle}', sans-serif` : null;
 
-  // Dados do GON vindos da API
   const gon = set.gon || {};
   const gonName    = gon.username    || set.gomUsername || set.ownerUsername || 'GOM';
   const gonPicUrl  = gon.profilePicUrl || null;
@@ -338,7 +360,7 @@ export default function SetPage() {
   const statusMeta = {
     Draft:     { label: 'Rascunho',   cls: 'badge-gray' },
     Published: { label: 'Publicado',  cls: 'badge-lilac' },
-    Open:      { label: '🔴 AO VIVO', cls: 'badge-live'  },
+    Open:      { label: 'AO VIVO',    cls: 'badge-live'  },
     Closed:    { label: 'Encerrado',  cls: 'badge-gray'  },
   };
   const sm = statusMeta[set.status] || { label: set.status, cls: 'badge-gray' };
@@ -370,11 +392,12 @@ export default function SetPage() {
                   <img src={set.imageUrl} alt={set.title} className={styles.setImg} />
                 ) : (
                   <div className={styles.setImgPlaceholder}>
-                    <span style={{ fontSize: '3rem' }}>🃏</span>
+                    <ImageIcon size={40} strokeWidth={1.5} style={{ color: 'var(--gray)' }} />
                     <span style={{ fontSize: '0.85rem', color: 'var(--gray)', marginTop: 8 }}>Nenhuma imagem definida</span>
                   </div>
                 )}
-                <span className={`badge ${sm.cls}`} style={{ position: 'absolute', top: 14, left: 14 }}>
+                <span className={`badge ${sm.cls}`} style={{ position: 'absolute', top: 14, left: 14, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {set.status === 'Open' && <Radio size={10} strokeWidth={2.5} />}
                   {sm.label}
                 </span>
                 {connected && isStreamingPhase && (
@@ -390,7 +413,11 @@ export default function SetPage() {
                       disabled={uploadingImg}
                       title="Alterar imagem do set"
                     >
-                      {uploadingImg ? <span className="spinner" style={{ width: 12, height: 12 }} /> : '🖼️ Alterar imagem'}
+                      {uploadingImg
+                        ? <Loader2 size={12} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+                        : <ImageIcon size={12} strokeWidth={2} />
+                      }
+                      Alterar imagem
                     </button>
                     <input ref={imgInputRef} type="file" accept={ALLOWED_IMAGE_EXTS} onChange={handleImgFileChange} style={{ display: 'none' }} />
                   </>
@@ -398,7 +425,6 @@ export default function SetPage() {
               </div>
 
               <div className={styles.setMeta}>
-                {/* GON row populado com dados da API */}
                 <div className={styles.gomRow}>
                   {gonPicUrl ? (
                     <img
@@ -438,31 +464,38 @@ export default function SetPage() {
               </div>
             </div>
 
-            {/* GOM control bar — sem botão +Membro aqui */}
+            {/* GOM control bar */}
             {isGom && (
               <div className={`card ${styles.gomBar}`}>
-                <span style={{ fontWeight: 800, color: 'var(--ink-soft)', fontSize: '0.82rem' }}>👑 Painel GOM</span>
+                <span style={{ fontWeight: 800, color: 'var(--ink-soft)', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Crown size={14} strokeWidth={2} style={{ color: 'var(--rose-dark)' }} />
+                  Painel GOM
+                </span>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {set.status === 'Draft' && !!(set.photocards || []).length && (
-                    <button className="btn btn-primary btn-sm" onClick={handlePublish}>
-                      📢 Publicar
+                    <button className="btn btn-primary btn-sm" onClick={handlePublish} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Megaphone size={13} strokeWidth={2} />
+                      Publicar
                     </button>
                   )}
                   {(set.status === 'Draft' || set.status === 'Published') && (
-                    <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(true)}>
+                    <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <XCircle size={13} strokeWidth={2} />
                       Cancelar set
                     </button>
                   )}
                   {set.status === 'Open' && (
-                    <button className="btn btn-danger btn-sm" onClick={handleClose}>
-                      🔒 Fechar claim
+                    <button className="btn btn-danger btn-sm" onClick={handleClose} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Lock size={13} strokeWidth={2} />
+                      Fechar claim
                     </button>
                   )}
                   <button className="btn btn-secondary btn-sm" onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
-                    toast.success('Link copiado! 🔗');
-                  }}>
-                    🔗 Link
+                    toast.success('Link copiado!');
+                  }} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <LinkIcon size={13} strokeWidth={2} />
+                    Link
                   </button>
                 </div>
               </div>
@@ -481,25 +514,27 @@ export default function SetPage() {
                 </span>
               </div>
 
-              {/* +Membro e Editar membros ficam juntos no lado direito */}
               {canEditMember && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {/* +Membro só em Draft */}
                   {canAddMember && (
                     <button
                       className="btn btn-secondary btn-sm"
-                      style={{ fontSize: '0.78rem' }}
+                      style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}
                       onClick={() => setShowAddCard(true)}
                     >
-                      + Membro
+                      <Plus size={13} strokeWidth={2.5} />
+                      Membro
                     </button>
                   )}
                   <button
                     className={`btn btn-sm ${editMode ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ fontSize: '0.78rem' }}
+                    style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}
                     onClick={() => { setEditMode((m) => !m); setEditingPc(null); }}
                   >
-                    {editMode ? '✓ Concluir' : '✏️ Editar membros'}
+                    {editMode
+                      ? <><Check size={13} strokeWidth={2.5} /> Concluir</>
+                      : <><Pencil size={13} strokeWidth={2} /> Editar membros</>
+                    }
                   </button>
                 </div>
               )}
@@ -507,24 +542,30 @@ export default function SetPage() {
 
             {editMode && (
               <div className={styles.gomHint} style={{ marginBottom: 10 }}>
-                <span>↕️</span>
-                <span>Arraste para reordenar · Clique em ✏️ para editar nome/versão · 🗑️ para excluir</span>
+                <GripVertical size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>Arraste para reordenar · Clique em editar para alterar nome/versão · ícone de lixeira para excluir</span>
               </div>
             )}
 
             {isGom && set.status === 'Draft' && !editMode && (
               <div className={styles.gomHint}>
                 {!(set.photocards || []).length ? (
-                  <><span>⚠️</span><span>Adicione um ou mais membros para poder publicar o seu set para os collectors.</span></>
+                  <>
+                    <AlertTriangle size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>Adicione um ou mais membros para poder publicar o seu set para os collectors.</span>
+                  </>
                 ) : (
-                  <><span>✅</span><span>Após adicionar todos os membros, publique o set para que os collectors possam dar claim!</span></>
+                  <>
+                    <CheckCircle2 size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>Após adicionar todos os membros, publique o set para que os collectors possam dar claim!</span>
+                  </>
                 )}
               </div>
             )}
 
             {reordering && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: '0.75rem', color: 'var(--gray)' }}>
-                <span className="spinner" style={{ width: 14, height: 14 }} />
+                <Loader2 size={14} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
                 <span>Salvando nova ordem...</span>
               </div>
             )}
@@ -532,11 +573,14 @@ export default function SetPage() {
             <div className={styles.memberList}>
               {(set.photocards || []).length === 0 ? (
                 <div className={styles.emptyMembers}>
-                  <span style={{ fontSize: '2rem' }}>🌸</span>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                    <Heart size={32} strokeWidth={1.5} style={{ color: 'var(--rose)' }} />
+                  </div>
                   <p style={{ color: 'var(--gray)', fontSize: '0.88rem', marginTop: 8 }}>Nenhum membro adicionado.</p>
                   {canAddMember && (
-                    <button className="btn btn-primary btn-sm" style={{ marginTop: 12 }} onClick={() => setShowAddCard(true)}>
-                      + Adicionar
+                    <button className="btn btn-primary btn-sm" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => setShowAddCard(true)}>
+                      <Plus size={13} strokeWidth={2.5} />
+                      Adicionar
                     </button>
                   )}
                 </div>
@@ -586,7 +630,7 @@ export default function SetPage() {
         <ConfirmModal
           title="Cancelar set"
           message={`Tem certeza que deseja cancelar o set "${set.title}"?\n\nEle será removido e os collectors perderão o acesso.`}
-          confirmLabel="Sim, cancelar set ✕"
+          confirmLabel="Sim, cancelar set"
           confirmClass="btn-danger"
           onConfirm={handleCancel}
           onCancel={() => setCancelModal(false)}
@@ -622,7 +666,7 @@ export default function SetPage() {
               : prev
             );
             setShowAddCard(false);
-            toast.success('Membro adicionado! 🃏');
+            toast.success('Membro adicionado!');
           }}
         />
       )}
@@ -649,7 +693,8 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
 
   if (phase === 'closed') return (
     <div className={`${styles.timerBanner} ${styles.timerClosed}`}>
-      <span>🔒</span><span>Claim encerrado</span>
+      <Lock size={16} strokeWidth={2} />
+      <span>Claim encerrado</span>
       {formatted && <span className={styles.timerDate}>· {formatted}</span>}
     </div>
   );
@@ -663,7 +708,10 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
           : timeLeft ? `+${timeLeft.replace(/^\+/, '')}` : 'Aberto!'
         }
       </span>
-      <span className={styles.timerLabel}>claim aberto! ⚡</span>
+      <span className={styles.timerLabel} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Zap size={14} strokeWidth={2.5} />
+        claim aberto!
+      </span>
     </div>
   );
 
@@ -677,20 +725,17 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
 
   return (
     <div className={styles.timerBanner}>
-      <span className={styles.timerSub}>⏰ Claim abre em</span>
+      <Clock size={14} strokeWidth={2} style={{ color: 'var(--gray)', flexShrink: 0 }} />
+      <span className={styles.timerSub}>Claim abre em</span>
       <span className={styles.timerValue}>{timeLeft ?? '...'}</span>
       {formatted && <span className={styles.timerDate}>{formatted}</span>}
     </div>
   );
 }
 
-/* ── Member Row (modo normal) ──
-   isGom = true → sem blur, pode ver tudo antes do claim abrir.
-   Collector normal → blur em waiting/streaming.
-*/
+/* ── Member Row (modo normal) ── */
 function MemberRow({ pc, phase, claimed, claiming, userId, isGom, onClaim, onOpenRank }) {
   const canClaim = (phase === 'open') && !claimed;
-  // GON nunca recebe blur — vê os membros sempre
   const blurred  = !isGom && (phase === 'waiting' || phase === 'streaming');
   const isClosed = phase === 'closed';
   const claims     = pc.claims || [];
@@ -705,8 +750,11 @@ function MemberRow({ pc, phase, claimed, claiming, userId, isGom, onClaim, onOpe
     >
       {blurred && (
         <div className={styles.blurOverlay}>
-          <span className={styles.blurMsg}>
-            {phase === 'streaming' ? '⏳ Preparando...' : '🔒 Aguardando abertura'}
+          <span className={styles.blurMsg} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {phase === 'streaming'
+              ? <><Clock size={13} strokeWidth={2} /> Preparando...</>
+              : <><Lock size={13} strokeWidth={2} /> Aguardando abertura</>
+            }
           </span>
         </div>
       )}
@@ -740,8 +788,12 @@ function MemberRow({ pc, phase, claimed, claiming, userId, isGom, onClaim, onOpe
         title={isClosed ? 'Claim encerrado' : claimed ? `Posição #${myPos + 1}` : canClaim ? 'Dar claim!' : 'Aguardando...'}
       >
         {claiming
-          ? <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-          : isClosed ? '🔒' : claimed ? '✓' : '♡'
+          ? <Loader2 size={14} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+          : isClosed
+            ? <Lock size={14} strokeWidth={2} />
+            : claimed
+              ? <Check size={15} strokeWidth={2.5} />
+              : <Heart size={15} strokeWidth={2} />
         }
       </button>
     </div>
@@ -763,7 +815,9 @@ function MemberRowEdit({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
     >
-      <span className={styles.dragHandle} title="Arrastar para reordenar">⠿</span>
+      <span className={styles.dragHandle} title="Arrastar para reordenar">
+        <GripVertical size={16} strokeWidth={2} />
+      </span>
 
       <div className={styles.memberInfo}>
         {isEditing ? (
@@ -798,15 +852,24 @@ function MemberRowEdit({
       <div className={styles.rowEditActions}>
         {isEditing ? (
           <>
-            <button className="btn btn-ghost btn-sm" style={{ padding: '5px 10px', fontSize: '0.78rem' }} onClick={onCancelEdit} disabled={savingPc}>✕</button>
-            <button className="btn btn-primary btn-sm" style={{ padding: '5px 12px', fontSize: '0.78rem' }} onClick={onSave} disabled={savingPc}>
-              {savingPc ? <span className="spinner" style={{ width: 12, height: 12 }} /> : '✓'}
+            <button className="btn btn-ghost btn-sm" style={{ padding: '5px 10px' }} onClick={onCancelEdit} disabled={savingPc}>
+              <XCircle size={14} strokeWidth={2} />
+            </button>
+            <button className="btn btn-primary btn-sm" style={{ padding: '5px 12px' }} onClick={onSave} disabled={savingPc}>
+              {savingPc
+                ? <Loader2 size={13} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+                : <Check size={14} strokeWidth={2.5} />
+              }
             </button>
           </>
         ) : (
           <>
-            <button className="btn btn-secondary btn-sm" style={{ padding: '5px 10px', fontSize: '0.78rem' }} onClick={onEdit} title="Editar">✏️</button>
-            <button className="btn btn-ghost btn-sm" style={{ padding: '5px 10px', fontSize: '0.78rem', color: '#c0392b' }} onClick={onDelete} title="Excluir">🗑️</button>
+            <button className="btn btn-secondary btn-sm" style={{ padding: '5px 10px' }} onClick={onEdit} title="Editar">
+              <Pencil size={13} strokeWidth={2} />
+            </button>
+            <button className="btn btn-ghost btn-sm" style={{ padding: '5px 10px', color: '#c0392b' }} onClick={onDelete} title="Excluir">
+              <Trash2 size={13} strokeWidth={2} />
+            </button>
           </>
         )}
       </div>

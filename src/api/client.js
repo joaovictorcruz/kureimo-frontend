@@ -1,102 +1,132 @@
-const ENV = import.meta.env.MODE;
+const IS_PROD  = import.meta.env.MODE === 'production';
+const BASE_URL = IS_PROD ? 'https://api.kureimo.com' : '/api';
 
-const BASE_URL =
-  ENV === 'production'
-    ? 'https://api.kureimo.com'
-    : 'https://localhost:7011';
+// Em dev: /hubs/set vai pelo proxy do Vite (ws: true) direto para localhost:7011
+// Em prod: URL absoluta com wss://
+export const SIGNALR_URL = IS_PROD
+  ? 'https://api.kureimo.com/hubs/set'
+  : '/hubs/set';
 
-export const SIGNALR_URL = `${BASE_URL}/hubs/set`;
-
-const getToken = () => localStorage.getItem('kureimo_token');
+function dispatchSessionInvalid(reason) {
+  window.dispatchEvent(
+    new CustomEvent('kureimo:session-invalid', { detail: { reason } })
+  );
+}
 
 const request = async (method, path, body) => {
   const headers = { 'Content-Type': 'application/json' };
-  const token = getToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      credentials: 'include',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    dispatchSessionInvalid('network');
+    throw new Error('Sem conexão com o servidor. Verifique sua internet.');
+  }
+
+  if (res.status === 401) {
+    dispatchSessionInvalid('expired');
+    throw new Error('Sessão expirada.');
+  }
 
   if (res.status === 204) return null;
 
   const data = await res.json();
   if (!res.ok) {
-    const message = data?.error || data?.detail || data?.title || data?.message || 'Erro inesperado.';
+    const message =
+      data?.error || data?.detail || data?.title || data?.message || 'Erro inesperado.';
     const err = new Error(message);
     err.status = res.status;
-    err.body = data;
+    err.body   = data;
     throw err;
   }
   return data;
 };
 
-// Requisição multipart/form-data (sem Content-Type para o browser setar o boundary)
 const requestFormData = async (method, path, formData) => {
-  const headers = {};
-  const token = getToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      credentials: 'include',
+      body: formData,
+    });
+  } catch {
+    dispatchSessionInvalid('network');
+    throw new Error('Sem conexão com o servidor. Verifique sua internet.');
+  }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: formData,
-  });
+  if (res.status === 401) {
+    dispatchSessionInvalid('expired');
+    throw new Error('Sessão expirada.');
+  }
 
   if (res.status === 204) return null;
 
   const data = await res.json();
   if (!res.ok) {
-    const message = data?.error || data?.detail || data?.title || data?.message || 'Erro inesperado.';
+    const message =
+      data?.error || data?.detail || data?.title || data?.message || 'Erro inesperado.';
     const err = new Error(message);
     err.status = res.status;
-    err.body = data;
+    err.body   = data;
     throw err;
   }
   return data;
 };
 
-// Auth
 export const authApi = {
+  login:    (dto) => request('POST', '/auth/login', dto),
   register: (dto) => request('POST', '/auth/register', dto),
-  login: (dto) => request('POST', '/auth/login', dto),
+  me:       ()    => request('GET',  '/auth/me'),
+  logout:   ()    => request('POST', '/auth/logout'),
 };
 
-// Sets
 export const setsApi = {
-  getByToken: (accessToken) => request('GET', `/sets/${accessToken}`),
-  getMine: (page = 1, pageSize = 10) => request('GET', `/sets/mine?page=${page}&pageSize=${pageSize}`),
-  create: (formData) => requestFormData('POST', '/sets', formData),
-  update: (accessToken, dto) => request('PUT', `/sets/${accessToken}`, dto),
-  updateImage: (accessToken, formData) => requestFormData('PUT', `/sets/${accessToken}/image`, formData),
-  addPhotocard: (accessToken, dto) => request('POST', `/sets/${accessToken}/photocards`, dto),
-  updatePhotocard: (accessToken, photocardId, dto) =>
-    request('PUT', `/sets/${accessToken}/photocards/${photocardId}`, dto),
-  deletePhotocard: (accessToken, photocardId) =>
-    request('DELETE', `/sets/${accessToken}/photocards/${photocardId}`),
-  reorderPhotocards: (accessToken, orderedIds) =>
-    request('PUT', `/sets/${accessToken}/photocards/reorder`, { orderedIds }),
-  publish: (accessToken) => request('POST', `/sets/${accessToken}/publish`),
-  open: (accessToken) => request('POST', `/sets/${accessToken}/open`),
-  close: (accessToken) => request('POST', `/sets/${accessToken}/close`),
-  cancel: (accessToken) => request('DELETE', `/sets/${accessToken}/cancel`),
-  deleteOne: (accessToken) => request('DELETE', `/sets/${accessToken}`),
-  deleteHistory: () => request('DELETE', '/sets/history'),
+  getByToken:        (accessToken)             => request('GET',    `/sets/${accessToken}`),
+  getMine:           (page = 1, pageSize = 10) => request('GET',    `/sets/mine?page=${page}&pageSize=${pageSize}`),
+  create:            (formData)                => requestFormData('POST', '/sets', formData),
+  update:            (accessToken, dto)        => request('PUT',    `/sets/${accessToken}`, dto),
+  updateImage:       (accessToken, formData)   => requestFormData('PUT', `/sets/${accessToken}/image`, formData),
+  addPhotocard:      (accessToken, dto)        => request('POST',   `/sets/${accessToken}/photocards`, dto),
+  updatePhotocard:   (accessToken, pcId, dto)  => request('PUT',    `/sets/${accessToken}/photocards/${pcId}`, dto),
+  deletePhotocard:   (accessToken, pcId)       => request('DELETE', `/sets/${accessToken}/photocards/${pcId}`),
+  reorderPhotocards: (accessToken, orderedIds) => request('PUT',    `/sets/${accessToken}/photocards/reorder`, { orderedIds }),
+  publish:           (accessToken)             => request('POST',   `/sets/${accessToken}/publish`),
+  open:              (accessToken)             => request('POST',   `/sets/${accessToken}/open`),
+  close:             (accessToken)             => request('POST',   `/sets/${accessToken}/close`),
+  cancel:            (accessToken)             => request('DELETE', `/sets/${accessToken}/cancel`),
+  deleteOne:         (accessToken)             => request('DELETE', `/sets/${accessToken}`),
+  deleteHistory:     ()                        => request('DELETE', '/sets/history'),
 };
 
-// Claims
 export const claimsApi = {
-  claim: (photocardId) => request('POST', `/claims/${photocardId}`),
-  getByPhotocard: (photocardId) => request('GET', `/claims/photocard/${photocardId}`),
+  claim:          (photocardId) => request('POST', `/claims/${photocardId}`),
+  getByPhotocard: (photocardId) => request('GET',  `/claims/photocard/${photocardId}`),
 };
 
-// Users
 export const usersApi = {
-  get: (id) => request('GET', `/users/${id}`),
-  update: (id, dto) => request('PUT', `/users/${id}`, dto),
-  updatePassword: (id, dto) => request('PUT', `/users/${id}/password`, dto),
-  updateProfilePic: (id, formData) => requestFormData('PUT', `/users/${id}/profile-pic`, formData),
-  delete: (id) => request('DELETE', `/users/${id}`),
+  get: (id) =>
+    id ? request('GET', `/users/${id}`) : request('GET', '/users/me'),
+
+  update: (id, dto) =>
+    id ? request('PUT', `/users/${id}`, dto) : request('PUT', '/users/me', dto),
+
+  updatePassword: (id, dto) =>
+    id
+      ? request('PUT', `/users/${id}/password`, dto)
+      : request('PUT', '/users/me/password', dto),
+
+  updateProfilePic: (id, fd) =>
+    id
+      ? requestFormData('PUT', `/users/${id}/profile-pic`, fd)
+      : requestFormData('PUT', '/users/me/profile-pic', fd),
+
+  delete: (id) =>
+    id ? request('DELETE', `/users/${id}`) : request('DELETE', '/users/me'),
 };

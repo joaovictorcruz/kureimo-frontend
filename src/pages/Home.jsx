@@ -3,13 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from '../components/AuthModal';
 import Logo from '../components/Logo';
+import { Zap, Trophy, Link2, Palette, Heart } from 'lucide-react';
 import styles from './Home.module.css';
 
 const FEATURES = [
-  { icon: '⚡', title: 'Claim em tempo real', desc: 'Velocidade de milissegundos via SignalR. Quem clica primeiro, leva — sem enquete, sem confusão.' },
-  { icon: '🏆', title: 'Ranking com timestamp', desc: 'Veja exatamente quem fez claim e o horário exato com precisão de milissegundos.' },
-  { icon: '🔗', title: 'Link exclusivo por set', desc: 'Seu GOM compartilha o link no grupo e você entra direto no set, sem precisar de conta prévia.' },
-  { icon: '🎨', title: 'Visual personalizado', desc: 'GOMs escolhem cor de fundo, fonte e imagem do set - estilo post.' },
+  {
+    icon: Zap,
+    title: 'Claim em tempo real',
+    desc: 'Velocidade de milissegundos via SignalR. Quem clica primeiro, leva — sem enquete, sem confusão.',
+  },
+  {
+    icon: Trophy,
+    title: 'Ranking com timestamp',
+    desc: 'Veja exatamente quem fez claim e o horário exato com precisão de milissegundos.',
+  },
+  {
+    icon: Link2,
+    title: 'Link exclusivo por set',
+    desc: 'Seu GOM compartilha o link no grupo e você entra direto no set, sem precisar de conta prévia.',
+  },
+  {
+    icon: Palette,
+    title: 'Visual personalizado',
+    desc: 'GOMs escolhem cor de fundo, fonte e imagem do set - estilo post.',
+  },
 ];
 
 export default function Home() {
@@ -49,8 +66,8 @@ export default function Home() {
 
             <h1 className={styles.heroTitle}>
               Claim seus<br />
-              <em>photocards</em><br />
-              sem stress ♥️
+              <em>photocards</em>
+              sem stress
             </h1>
 
             <p className={styles.heroSub}>
@@ -60,7 +77,7 @@ export default function Home() {
             {!authLoading && !user && (
               <div className={styles.heroCtas}>
                 <button className="btn btn-primary btn-lg" onClick={openRegister}>
-                  Criar conta grátis ✨
+                  Criar conta grátis
                 </button>
                 <button className="btn btn-secondary btn-lg" onClick={openLogin}>
                   Já tenho conta
@@ -88,14 +105,13 @@ export default function Home() {
             <div className={styles.setMockup}>
               {/* Mock set card */}
               <div className={styles.mockSetImg}>
-                <div className={styles.mockImgGrad} />
                 <span className="badge badge-live" style={{ position: 'absolute', top: 10, left: 10, fontSize: '0.65rem' }}>
                   <span className={styles.mockLiveDot} /> AO VIVO
                 </span>
               </div>
               <div className={styles.mockSetMeta}>
                 <div className={styles.mockGomRow}>
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,var(--rose),var(--blush))', flexShrink: 0 }} />
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(150deg,var(--rose),var(--blush))', flexShrink: 0 }} />
                   <div>
                     <div style={{ height: 7, width: 80, borderRadius: 4, background: 'var(--blush)' }} />
                   </div>
@@ -109,9 +125,9 @@ export default function Home() {
             <div className={styles.mockRows}>
               {[
                 { name: 'Jimin', blur: false, claimed: true },
-                { name: 'V', blur: false, claimed: false, active: true },
+                { name: 'V',     blur: false, claimed: false, active: true },
                 { name: 'Jungkook', blur: true },
-                { name: 'Jin', blur: true },
+                { name: 'Jin',   blur: true },
               ].map((m, i) => (
                 <div key={i} className={`${styles.mockRow} ${m.blur ? styles.mockRowBlur : ''}`}>
                   <div className={styles.mockRowName}>
@@ -139,19 +155,18 @@ export default function Home() {
           </div>
 
           <div className={styles.featureGrid}>
-            {FEATURES.map((f, i) => (
-              <div key={f.title} className={`card ${styles.featureCard}`}
-                style={{ background: [
-                  'linear-gradient(135deg,rgba(242,134,149,0.07),rgba(242,191,180,0.1))',
-                  'linear-gradient(135deg,rgba(242,191,180,0.07),rgba(241,204,166,0.1))',
-                  'linear-gradient(135deg,rgba(241,204,166,0.07),rgba(242,230,181,0.1))',
-                  'linear-gradient(135deg,rgba(242,230,181,0.07),rgba(242,191,180,0.1))',
-                ][i] }}>
-                <div className={styles.featureIcon}>{f.icon}</div>
-                <h3>{f.title}</h3>
-                <p style={{ color: 'var(--gray)', marginTop: 8, fontSize: '0.88rem', lineHeight: 1.65 }}>{f.desc}</p>
-              </div>
-            ))}
+            {FEATURES.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div key={f.title} className={`card ${styles.featureCard}`}>
+                  <div className={styles.featureIconWrap}>
+                    <Icon size={20} strokeWidth={2} />
+                  </div>
+                  <h3>{f.title}</h3>
+                  <p style={{ color: 'var(--gray)', marginTop: 8, fontSize: '0.88rem', lineHeight: 1.65 }}>{f.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -162,10 +177,10 @@ export default function Home() {
           <h2 style={{ textAlign: 'center', marginBottom: 52 }}>Como funciona?</h2>
           <div className={styles.steps}>
             {[
-              { n: '01', title: 'GOM cria o set',      desc: 'Sobe a imagem do fornecedor, define o horário do claim e personaliza o visual do post.' },
-              { n: '02', title: 'Compartilha o link',  desc: 'O GOM posta o link exclusivo do set e apenas quem possui o link, tem acesso ao set.' },
-              { n: '03', title: 'Você dá claim',       desc: 'Na hora marcada, o botão ativa em tempo real. Clique no círculo ao lado do membro que você quer!' },
-              { n: '04', title: 'Ranking na hora',     desc: 'Abra o card do membro pra ver a fila completa com o timestamp exato de cada claim.' },
+              { n: '01', title: 'GOM cria o set',     desc: 'Sobe a imagem do fornecedor, define o horário do claim e personaliza o visual do post.' },
+              { n: '02', title: 'Compartilha o link', desc: 'O GOM posta o link exclusivo do set e apenas quem possui o link, tem acesso ao set.' },
+              { n: '03', title: 'Você dá claim',      desc: 'Na hora marcada, o botão ativa em tempo real. Clique no círculo ao lado do membro que você quer!' },
+              { n: '04', title: 'Ranking na hora',    desc: 'Abra o card do membro pra ver a fila completa com o timestamp exato de cada claim.' },
             ].map((s) => (
               <div key={s.n} className={styles.step}>
                 <div className={styles.stepNum}>{s.n}</div>
@@ -183,12 +198,12 @@ export default function Home() {
       {!user && (
         <section className={styles.ctaSection}>
           <div className="page-container" style={{ textAlign: 'center' }}>
-            <h2>Pronta pra dar claim? 💜</h2>
+            <h2>Pronta pra dar claim?</h2>
             <p style={{ color: 'var(--gray)', marginTop: 10, marginBottom: 32, fontSize: '0.95rem' }}>
               Crie sua conta grátis e nunca mais perca um photocard.
             </p>
             <button className="btn btn-primary btn-lg" onClick={openRegister}>
-              Começar agora 🌸
+              Começar agora
             </button>
           </div>
         </section>
@@ -198,8 +213,8 @@ export default function Home() {
       <footer className={styles.footer}>
         <div className="page-container" style={{ textAlign: 'center' }}>
           <Logo size={28} showText />
-          <p style={{ color: 'var(--gray)', fontSize: '0.78rem', marginTop: 12 }}>
-            feito com ♥️ para a comunidade kpop do Brasil
+          <p style={{ color: 'var(--gray)', fontSize: '0.78rem', marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            feito com <Heart size={12} fill="currentColor" color="var(--rose)" /> para a comunidade kpop do Brasil
           </p>
         </div>
       </footer>

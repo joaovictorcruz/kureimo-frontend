@@ -1,9 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from './Logo';
 import AuthModal from './AuthModal';
 import styles from './Navbar.module.css';
+import {
+  Package,
+  User,
+  LogOut,
+  ChevronDown,
+  Crown,
+} from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout, isGom, profilePicUrl } = useAuth();
@@ -27,7 +34,6 @@ export default function Navbar() {
 
   const initial = user?.username?.[0]?.toUpperCase() || '?';
 
-  // Avatar: foto de perfil se disponível, fallback para inicial
   const AvatarSmall = ({ size = 32, fontSize = '0.75rem' }) => (
     profilePicUrl ? (
       <img
@@ -54,14 +60,20 @@ export default function Navbar() {
               <>
                 {isGom && (
                   <Link to="/dashboard" className={`btn btn-ghost btn-sm ${styles.navLink}`}>
-                    📦 Meus Sets
+                    <Package size={14} strokeWidth={2.5} />
+                    Meus Sets
                   </Link>
                 )}
                 <div className={styles.avatarWrap} ref={menuRef}>
                   <button className={styles.avatarBtn} onClick={() => setMenuOpen((v) => !v)}>
                     <AvatarSmall size={32} fontSize="0.75rem" />
                     <span className={styles.username}>{user.username}</span>
-                    <span className={styles.caret} style={{ transform: menuOpen ? 'rotate(180deg)' : 'none' }}>▾</span>
+                    <ChevronDown
+                      size={12}
+                      strokeWidth={2.5}
+                      className={styles.caret}
+                      style={{ transition: 'transform 0.2s', transform: menuOpen ? 'rotate(180deg)' : 'none', color: 'var(--gray)' }}
+                    />
                   </button>
 
                   {menuOpen && (
@@ -73,8 +85,9 @@ export default function Navbar() {
                           <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--ink)' }}>{user.username}</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--gray)' }}>{user.email}</div>
                           {isGom && (
-                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--rose-dark)', letterSpacing: '0.04em' }}>
-                              👑 GOM
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', fontWeight: 800, color: 'var(--rose-dark)', letterSpacing: '0.04em' }}>
+                              <Crown size={10} strokeWidth={2.5} />
+                              GOM
                             </span>
                           )}
                         </div>
@@ -83,18 +96,21 @@ export default function Navbar() {
                       <hr className="divider" style={{ margin: '10px 0' }} />
 
                       <Link to="/perfil" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
-                        👤 Meu perfil
+                        <User size={15} strokeWidth={2} />
+                        Meu perfil
                       </Link>
                       {isGom && (
                         <Link to="/dashboard" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
-                          📦 Meus Sets
+                          <Package size={15} strokeWidth={2} />
+                          Meus Sets
                         </Link>
                       )}
 
                       <hr className="divider" style={{ margin: '8px 0' }} />
 
                       <button className={`${styles.dropdownItem} ${styles.dropdownDanger}`} onClick={handleLogout}>
-                        🚪 Sair
+                        <LogOut size={15} strokeWidth={2} />
+                        Sair
                       </button>
                     </div>
                   )}
@@ -103,7 +119,9 @@ export default function Navbar() {
             ) : (
               <>
                 <button className="btn btn-ghost btn-sm" onClick={openLogin}>Entrar</button>
-                <button className="btn btn-primary btn-sm" onClick={openRegister}>Cadastrar ✨</button>
+                <button className="btn btn-primary btn-sm" onClick={openRegister}>
+                  Cadastrar
+                </button>
               </>
             )}
           </div>

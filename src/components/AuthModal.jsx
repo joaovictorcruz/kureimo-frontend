@@ -120,7 +120,7 @@ export default function AuthModal({ initialMode = 'login', onClose }) {
               />
               <div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--rose-dark)' }}>
-                  Sou GOM 👑
+                  Sou GOM
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>
                   Vou criar e gerenciar sets de photocards
@@ -132,7 +132,7 @@ export default function AuthModal({ initialMode = 'login', onClose }) {
           <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: 4 }}>
             {loading ? (
               <span className="spinner" style={{ width: 18, height: 18 }} />
-            ) : mode === 'login' ? 'Entrar 🌸' : 'Criar conta ✨'}
+            ) : mode === 'login' ? 'Entrar' : 'Criar conta'}
           </button>
         </form>
 

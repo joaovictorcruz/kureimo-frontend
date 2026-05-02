@@ -2,6 +2,19 @@ import { useState, useRef, useEffect } from 'react';
 import { setsApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import ImageCropModal from './ImageCropModal';
+import {
+  X,
+  Image as ImageIcon,
+  Type,
+  Palette,
+  Calendar,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Loader2,
+  Scissors,
+  Search,
+} from 'lucide-react';
 
 const BG_PRESETS = [
   { label: 'Rosa',    value: '#F28695' },
@@ -90,7 +103,10 @@ function ColorPicker({ presets, value, onChange }) {
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
         <div onClick={() => pickerRef.current?.click()} style={{ flex: 1, height: 42, borderRadius: 'var(--radius-sm)', background: value, border: '1.5px solid var(--card-border)', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: '0.7rem', fontWeight: 800, fontFamily: 'monospace', color: isLight(value) ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.6)', pointerEvents: 'none' }}>🎨 abrir seletor</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 800, fontFamily: 'monospace', color: isLight(value) ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.6)', pointerEvents: 'none' }}>
+            <Palette size={12} />
+            abrir seletor
+          </span>
           <input ref={pickerRef} type="color" value={value.length === 7 ? value : '#' + value.replace('#','').padEnd(6,'0')} onChange={(e) => onChange(e.target.value)} style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }} />
         </div>
         <input type="text" className="input" value={hexInput} onChange={(e) => handleHexChange(e.target.value)} placeholder="#FFFFFF" maxLength={7} style={{ width: 100, fontFamily: 'monospace', fontSize: '0.88rem', textTransform: 'uppercase', flexShrink: 0 }} />
@@ -113,10 +129,18 @@ function FontPickerModal({ value, onChange, onClose, previewText }) {
       <div className="card" style={{ width: '100%', maxWidth: 540, maxHeight: '78vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', animation: 'scale-in 0.22s ease' }}>
         <div style={{ padding: '20px 24px 14px', borderBottom: '1.5px solid var(--card-border)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontFamily: 'var(--font-display)' }}>🔤 Escolher fonte</h3>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px 10px' }}>✕</button>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Type size={18} strokeWidth={2} />
+              Escolher fonte
+            </h3>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px 10px' }}>
+              <X size={16} strokeWidth={2} />
+            </button>
           </div>
-          <input ref={searchRef} type="text" className="input" placeholder="Pesquisar fonte..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div style={{ position: 'relative' }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray)', pointerEvents: 'none' }} />
+            <input ref={searchRef} type="text" className="input" placeholder="Pesquisar fonte..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
+          </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {CATEGORIES.map((cat) => (
               <button key={cat} type="button" onClick={() => setCategory(cat)} style={{ padding: '4px 13px', borderRadius: 'var(--radius-pill)', border: '1.5px solid', borderColor: category === cat ? 'var(--rose)' : 'var(--card-border)', background: category === cat ? 'var(--rose-light)' : 'transparent', color: category === cat ? 'var(--rose-dark)' : 'var(--gray)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
@@ -134,7 +158,7 @@ function FontPickerModal({ value, onChange, onClose, previewText }) {
                 <span style={{ fontFamily: opt.css, fontSize: '1.1rem', color: isSelected ? 'var(--rose-dark)' : 'var(--ink-soft)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{previewText || opt.label}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isSelected ? 'var(--rose-dark)' : 'var(--gray)', fontFamily: 'var(--font-body)', background: isSelected ? 'rgba(242,134,149,0.15)' : 'var(--gray-light)', padding: '2px 7px', borderRadius: 'var(--radius-pill)' }}>{opt.label}</span>
-                  {isSelected && <span style={{ color: 'var(--rose-dark)', fontWeight: 900 }}>✓</span>}
+                  {isSelected && <Check size={14} strokeWidth={2.5} style={{ color: 'var(--rose-dark)' }} />}
                 </div>
               </button>
             );
@@ -156,7 +180,7 @@ function FontSelector({ value, onChange, previewText }) {
         <span style={{ fontFamily: selected.css, fontSize: '1.05rem', color: 'var(--ink-soft)', fontWeight: 600 }}>{previewText || selected.label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--gray)', background: 'var(--gray-light)', padding: '2px 8px', borderRadius: 'var(--radius-pill)', fontFamily: 'var(--font-body)' }}>{selected.label}</span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>✎</span>
+          <Type size={13} style={{ color: 'var(--gray)' }} />
         </div>
       </button>
       {showPicker && <FontPickerModal value={value} onChange={onChange} onClose={() => setShowPicker(false)} previewText={previewText} />}
@@ -183,14 +207,21 @@ function ImageUploadField({ imagePreview, onFileSelected, onClear, required }) {
           <div style={{ borderRadius: 'var(--radius-sm)', overflow: 'hidden', aspectRatio: '16/9', background: 'var(--gray-light)' }}>
             <img src={imagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-          <button type="button" onClick={onClear} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-          <button type="button" onClick={() => inputRef.current?.click()} style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>✂️ Recortar / Trocar</button>
+          <button type="button" onClick={onClear} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={14} strokeWidth={2.5} />
+          </button>
+          <button type="button" onClick={() => inputRef.current?.click()} style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Scissors size={12} strokeWidth={2} />
+            Recortar / Trocar
+          </button>
         </div>
       ) : (
         <div onClick={() => inputRef.current?.click()} style={{ border: '2px dashed var(--card-border)', borderRadius: 'var(--radius-sm)', padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.5)', transition: 'border-color 0.15s, background 0.15s' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--rose)'; e.currentTarget.style.background = 'var(--rose-light)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.background = 'rgba(255,255,255,0.5)'; }}>
-          <div style={{ fontSize: '1.6rem', marginBottom: 6 }}>🖼️</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+            <ImageIcon size={28} strokeWidth={1.5} style={{ color: 'var(--gray)' }} />
+          </div>
           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink-soft)' }}>Clique para selecionar</div>
           <div style={{ fontSize: '0.73rem', color: 'var(--gray)', marginTop: 3 }}>JPG, JPEG, PNG ou WEBP · máx 5MB</div>
         </div>
@@ -210,11 +241,9 @@ export default function CreateSetModal({ onClose, onCreated }) {
 
   const [form, setForm] = useState({ title: '', description: '', claimOpensAt: '' });
 
-  // Imagem: rawFile vem do input, cropSrc é o objectURL para o modal de crop,
-  // croppedBlob é o resultado final, imagePreview é o URL do blob cropado
-  const [rawFile, setRawFile]         = useState(null);
-  const [cropSrc, setCropSrc]         = useState(null);
-  const [croppedBlob, setCroppedBlob] = useState(null);
+  const [rawFile, setRawFile]           = useState(null);
+  const [cropSrc, setCropSrc]           = useState(null);
+  const [croppedBlob, setCroppedBlob]   = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
   const [bgColor,   setBgColor]   = useState('#F2BFB4');
@@ -223,14 +252,12 @@ export default function CreateSetModal({ onClose, onCreated }) {
 
   const setF = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
-  // Quando o usuário seleciona um arquivo, abre o modal de crop
   const handleFileSelected = (file) => {
     setRawFile(file);
     if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(URL.createObjectURL(file));
   };
 
-  // Quando crop é confirmado
   const handleCropConfirm = (blob) => {
     setCroppedBlob(blob);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -292,7 +319,9 @@ export default function CreateSetModal({ onClose, onCreated }) {
                 ))}
               </div>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px 10px' }}>✕</button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px 10px' }}>
+              <X size={16} strokeWidth={2} />
+            </button>
           </div>
 
           {step === 1 ? (
@@ -318,17 +347,27 @@ export default function CreateSetModal({ onClose, onCreated }) {
               </div>
 
               <div className="field">
-                <label>Claim abre em *</label>
-                <input className="input" type="datetime-local" value={form.claimOpensAt}
-                  onChange={(e) => setF('claimOpensAt', e.target.value)} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Calendar size={14} strokeWidth={2} />
+                  Claim abre em *
+                </label>
+                <input
+                  className="input"
+                  type="datetime-local"
+                  value={form.claimOpensAt}
+                  onChange={(e) => setF('claimOpensAt', e.target.value)}
+                  style={{ colorScheme: 'light' }}
+                />
                 <span style={{ fontSize: '0.73rem', color: 'var(--gray)' }}>
                   O stream em tempo real abre automaticamente 10 min antes e depois deste horário.
                 </span>
               </div>
 
               <button className="btn btn-primary" onClick={() => setStep(2)}
-                disabled={!form.title.trim() || !form.claimOpensAt || !croppedBlob} style={{ marginTop: 4 }}>
-                Próximo: Visual →
+                disabled={!form.title.trim() || !form.claimOpensAt || !croppedBlob}
+                style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                Próximo: Visual
+                <ChevronRight size={16} strokeWidth={2.5} />
               </button>
             </div>
 
@@ -349,22 +388,39 @@ export default function CreateSetModal({ onClose, onCreated }) {
               </div>
 
               <div className="field">
-                <label>Cor de fundo</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Palette size={14} strokeWidth={2} />
+                  Cor de fundo
+                </label>
                 <ColorPicker presets={BG_PRESETS} value={bgColor} onChange={setBgColor} />
               </div>
               <div className="field">
-                <label>Cor do texto</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Palette size={14} strokeWidth={2} />
+                  Cor do texto
+                </label>
                 <ColorPicker presets={FONT_COLOR_PRESETS} value={fontColor} onChange={setFontColor} />
               </div>
               <div className="field">
-                <label>Fonte do título</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Type size={14} strokeWidth={2} />
+                  Fonte do título
+                </label>
                 <FontSelector value={fontStyle.value} onChange={(opt) => setFontStyle(opt)} previewText={form.title || 'Título do set'} />
               </div>
 
               <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-secondary" onClick={() => setStep(1)} style={{ flex: 1 }}>← Voltar</button>
-                <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} style={{ flex: 2 }}>
-                  {loading ? <span className="spinner" style={{ width: 18, height: 18 }} /> : '✨ Criar set'}
+                <button className="btn btn-secondary" onClick={() => setStep(1)}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <ChevronLeft size={16} strokeWidth={2.5} />
+                  Voltar
+                </button>
+                <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}
+                  style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  {loading
+                    ? <><Loader2 size={18} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} /> Criando...</>
+                    : <><Check size={16} strokeWidth={2.5} /> Criar set</>
+                  }
                 </button>
               </div>
             </div>
@@ -372,7 +428,6 @@ export default function CreateSetModal({ onClose, onCreated }) {
         </div>
       </div>
 
-      {/* Modal de crop — renderizado fora do modal principal para z-index correto */}
       {cropSrc && (
         <ImageCropModal
           src={cropSrc}

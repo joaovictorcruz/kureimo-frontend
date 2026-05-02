@@ -16,36 +16,36 @@
 
 .blob1 {
   position: absolute;
-  width: 560px; height: 560px;
+  width: 520px; height: 520px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(242,134,149,0.28) 0%, transparent 70%);
-  top: -180px; left: -160px;
-  animation: float1 9s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(242,134,149,0.18) 0%, transparent 70%);
+  top: -160px; left: -140px;
+  animation: float1 10s ease-in-out infinite;
 }
 .blob2 {
   position: absolute;
-  width: 480px; height: 480px;
+  width: 440px; height: 440px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(242,191,180,0.22) 0%, transparent 70%);
-  top: -80px; right: -120px;
-  animation: float2 11s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(242,191,180,0.15) 0%, transparent 70%);
+  top: -60px; right: -100px;
+  animation: float2 13s ease-in-out infinite;
 }
 .blob3 {
   position: absolute;
-  width: 380px; height: 380px;
+  width: 360px; height: 360px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(242,230,181,0.2) 0%, transparent 70%);
-  bottom: -80px; left: 35%;
-  animation: float1 13s ease-in-out infinite reverse;
+  background: radial-gradient(circle, rgba(242,230,181,0.13) 0%, transparent 70%);
+  bottom: -80px; left: 38%;
+  animation: float1 15s ease-in-out infinite reverse;
 }
 
 @keyframes float1 {
   0%,100% { transform: translateY(0)    scale(1);    }
-  50%      { transform: translateY(28px) scale(1.05); }
+  50%      { transform: translateY(22px) scale(1.04); }
 }
 @keyframes float2 {
   0%,100% { transform: translateY(0)     scale(1);    }
-  50%      { transform: translateY(-20px) scale(0.97); }
+  50%      { transform: translateY(-16px) scale(0.97); }
 }
 
 .heroInner {
@@ -69,14 +69,26 @@
   color: var(--ink);
   margin-bottom: 20px;
   line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Linha com o ícone coração */
+.heroTitle > :last-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.heroHeart {
+  color: var(--rose);
+  flex-shrink: 0;
 }
 
 .heroTitle em {
   font-style: italic;
-  background: linear-gradient(135deg, var(--rose), var(--rose-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--rose);
 }
 
 .heroSub {
@@ -89,7 +101,7 @@
 
 .heroCtas {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 24px;
 }
@@ -105,30 +117,24 @@
 .heroVisual {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .setMockup {
-  background: rgba(255,255,255,0.82);
-  border: 1.5px solid var(--card-border);
+  background: rgba(255,255,255,0.88);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
   overflow: hidden;
-  animation: float2 7s ease-in-out infinite;
+  animation: float2 8s ease-in-out infinite;
 }
 
 .mockSetImg {
   position: relative;
   width: 100%;
   aspect-ratio: 16/9;
-  background: linear-gradient(135deg, var(--rose) 0%, var(--blush) 50%, var(--peach) 100%);
+  background: var(--blush);
   overflow: hidden;
-}
-
-.mockImgGrad {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(242,134,149,0.6), rgba(242,230,181,0.4));
 }
 
 .mockLiveDot {
@@ -136,7 +142,7 @@
   border-radius: 50%;
   background: var(--rose-dark);
   display: inline-block;
-  animation: pulse-badge 1s infinite;
+  animation: pulse-badge 1.2s infinite;
 }
 
 .mockSetMeta {
@@ -156,7 +162,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  animation: float1 8s ease-in-out infinite;
+  animation: float1 9s ease-in-out infinite;
 }
 
 .mockRow {
@@ -164,16 +170,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.82);
-  border: 1.5px solid var(--card-border);
+  padding: 11px 15px;
+  background: rgba(255,255,255,0.88);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-soft);
 }
 
 .mockRowBlur {
   filter: blur(3px);
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .mockRowName {
@@ -183,20 +189,20 @@
 }
 
 .mockCircle {
-  width: 34px; height: 34px;
+  width: 32px; height: 32px;
   border-radius: 50%;
-  border: 2px solid var(--card-border);
+  border: 1.5px solid var(--card-border);
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--gray);
   flex-shrink: 0;
 }
 
 .mockCircleDone {
-  background: linear-gradient(135deg, var(--rose), var(--blush));
+  background: var(--rose);
   border-color: transparent;
   color: white;
   font-weight: 900;
@@ -209,29 +215,46 @@
 }
 
 @keyframes circle-pulse {
-  0%,100% { box-shadow: 0 0 0 0   rgba(242,134,149,0.4); }
+  0%,100% { box-shadow: 0 0 0 0   rgba(242,134,149,0.35); }
   50%      { box-shadow: 0 0 0 5px rgba(242,134,149,0);   }
 }
 
 /* ── Features ── */
 .features {
   padding: 96px 0;
-  background: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.55);
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
 }
 
 .featureGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 20px;
+  gap: 18px;
 }
 
 .featureCard {
-  padding: 28px 26px;
+  padding: 28px 24px;
   transition: transform 0.2s, box-shadow 0.2s;
+  background: rgba(255,255,255,0.9) !important;
 }
-.featureCard:hover { transform: translateY(-5px); box-shadow: var(--shadow-pop); }
+.featureCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-pop);
+}
 
-.featureIcon { font-size: 2rem; margin-bottom: 14px; }
+/* Ícone do feature card */
+.featureIconWrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--rose-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rose-dark);
+  margin-bottom: 16px;
+}
 
 /* ── How it works ── */
 .howTo { padding: 96px 0; }
@@ -239,38 +262,36 @@
 .steps {
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  max-width: 640px;
+  gap: 32px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
 .step {
   display: flex;
-  gap: 24px;
+  gap: 28px;
   align-items: flex-start;
 }
 
 .stepNum {
   font-family: var(--font-display);
-  font-size: 2.4rem;
+  font-size: 2.2rem;
   color: var(--rose);
-  opacity: 0.35;
+  opacity: 0.28;
   line-height: 1;
   min-width: 56px;
+  user-select: none;
 }
 
 /* ── CTA ── */
 .ctaSection {
   padding: 96px 0;
-  background: linear-gradient(135deg,
-    rgba(242,134,149,0.12),
-    rgba(242,191,180,0.14),
-    rgba(242,230,181,0.12)
-  );
+  background: rgba(242,134,149,0.06);
+  border-top: 1px solid var(--card-border);
 }
 
 /* ── Footer ── */
 .footer {
   padding: 40px 0;
-  border-top: 1.5px solid var(--card-border);
+  border-top: 1px solid var(--card-border);
 }

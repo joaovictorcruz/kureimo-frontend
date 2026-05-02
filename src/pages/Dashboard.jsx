@@ -6,13 +6,28 @@ import { useToast } from '../contexts/ToastContext';
 import CreateSetModal from '../components/CreateSetModal';
 import EditSetModal from '../components/EditSetModal';
 import ConfirmModal from '../components/ConfirmModal';
+import {
+  Package,
+  Radio,
+  Send,
+  Lock,
+  Crown,
+  FileText,
+  Link2,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  Rocket,
+  LayoutGrid,
+  Clock,
+} from 'lucide-react';
 import styles from './Dashboard.module.css';
 
 const STATUS_LABELS = {
-  Draft:     { label: 'Rascunho',  cls: 'badge-gray',  emoji: '📝' },
-  Published: { label: 'Publicado', cls: 'badge-lilac',  emoji: '📢' },
-  Open:      { label: 'Ao vivo',   cls: 'badge-live',   emoji: '🔴' },
-  Closed:    { label: 'Encerrado', cls: 'badge-gray',   emoji: '🔒' },
+  Draft:     { label: 'Rascunho',  cls: 'badge-gray', Icon: FileText },
+  Published: { label: 'Publicado', cls: 'badge-lilac', Icon: Send     },
+  Open:      { label: 'Ao vivo',   cls: 'badge-live',  Icon: Radio    },
+  Closed:    { label: 'Encerrado', cls: 'badge-gray',  Icon: Lock     },
 };
 
 const PAGE_SIZE = 10;
@@ -40,7 +55,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) { navigate('/'); return; }
-    if (!isGom) { navigate('/'); toast.error('Acesso apenas para GOMs 👑'); return; }
+    if (!isGom) { navigate('/'); toast.error('Acesso apenas para GOMs'); return; }
   }, [user, isGom, authLoading]);
 
   const fetchSets = useCallback(async (p = page) => {
@@ -63,14 +78,14 @@ export default function Dashboard() {
 
   const copyLink = (set) => {
     navigator.clipboard.writeText(`${window.location.origin}/set/${set.accessToken}`);
-    toast.success('Link copiado! 🔗');
+    toast.success('Link copiado!');
   };
 
   const handlePublish = async (set) => {
     setActioningId(set.id);
     try {
       await setsApi.publish(set.accessToken);
-      toast.success(`"${set.title}" publicado! 📢`);
+      toast.success(`"${set.title}" publicado!`);
       setSets((prev) => prev.map((s) => s.id === set.id ? { ...s, status: 'Published' } : s));
     } catch (err) {
       toast.error(err?.message || 'Erro ao publicar.');
@@ -101,7 +116,7 @@ export default function Dashboard() {
     setActioningId(set.id);
     try {
       await setsApi.close(set.accessToken);
-      toast.success(`Claim de "${set.title}" encerrado. 🔒`);
+      toast.success(`Claim de "${set.title}" encerrado.`);
       setSets((prev) => prev.map((s) => s.id === set.id ? { ...s, status: 'Closed' } : s));
     } catch (err) {
       toast.error(err?.message || 'Erro ao fechar o claim.');
@@ -131,7 +146,7 @@ export default function Dashboard() {
     setLoading(true);
     try {
       await setsApi.deleteHistory();
-      toast.success('Histórico de sets encerrados limpo! 🧹');
+      toast.success('Histórico de sets encerrados limpo!');
       fetchSets(1);
       setPage(1);
     } catch (err) {
@@ -157,7 +172,9 @@ export default function Dashboard() {
         {/* Header */}
         <div className={styles.header}>
           <div>
-            <span className="badge badge-pink" style={{ marginBottom: 12 }}>👑 Painel GOM</span>
+            <span className="badge badge-pink" style={{ marginBottom: 12 }}>
+              <Crown size={11} strokeWidth={2.5} /> Painel GOM
+            </span>
             <h1>Meus Sets</h1>
             <p style={{ color: 'var(--gray)', marginTop: 6, fontSize: '0.95rem' }}>
               Olá, <strong style={{ color: 'var(--ink-soft)' }}>{user?.username}</strong>! Crie e gerencie seus sets aqui.
@@ -166,7 +183,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             {hasClosed && (
               <button className="btn btn-secondary" onClick={() => setHistoryModal(true)}>
-                🧹 Limpar histórico
+                Limpar histórico
               </button>
             )}
             <button className="btn btn-primary btn-lg" onClick={() => setShowCreate(true)}>
@@ -178,17 +195,22 @@ export default function Dashboard() {
         {/* Stats */}
         <div className={styles.statsGrid}>
           {[
-            { label: 'Total de sets', value: totalCount, icon: '📦', color: 'var(--blush-light)'  },
-            { label: 'Ao vivo',       value: liveSets,   icon: '🔴', color: 'var(--rose-light)'   },
-            { label: 'Publicados',    value: sets.filter((s) => s.status === 'Published').length, icon: '📢', color: 'var(--peach-light)' },
-            { label: 'Fechados',      value: closedSets, icon: '🔒', color: 'var(--butter-light)' },
-          ].map((s) => (
-            <div key={s.label} className={`card ${styles.statCard}`} style={{ background: s.color }}>
-              <div className={styles.statIcon}>{s.icon}</div>
-              <div className={styles.statValue}>{s.value}</div>
-              <div className={styles.statLabel}>{s.label}</div>
-            </div>
-          ))}
+            { label: 'Total de sets', value: totalCount,  Icon: Package,    color: 'var(--blush-light)'  },
+            { label: 'Ao vivo',       value: liveSets,    Icon: Radio,      color: 'var(--rose-light)'   },
+            { label: 'Publicados',    value: sets.filter((s) => s.status === 'Published').length, Icon: Send, color: 'var(--peach-light)' },
+            { label: 'Fechados',      value: closedSets,  Icon: Lock,       color: 'var(--butter-light)' },
+          ].map((s) => {
+            const Icon = s.Icon;
+            return (
+              <div key={s.label} className={`card ${styles.statCard}`} style={{ background: s.color }}>
+                <div className={styles.statIcon}>
+                  <Icon size={22} strokeWidth={1.8} />
+                </div>
+                <div className={styles.statValue}>{s.value}</div>
+                <div className={styles.statLabel}>{s.label}</div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Sets list */}
@@ -198,20 +220,23 @@ export default function Dashboard() {
           </div>
         ) : sets.length === 0 ? (
           <div className={`card ${styles.emptyState}`}>
-            <div style={{ fontSize: '3.5rem', marginBottom: 16 }}>🌸</div>
+            <div className={styles.emptyIcon}>
+              <LayoutGrid size={32} strokeWidth={1.5} />
+            </div>
             <h2>Nenhum set ainda</h2>
             <p style={{ color: 'var(--gray)', marginTop: 8, marginBottom: 28, maxWidth: 360 }}>
               Crie seu primeiro set, personalize o visual e compartilhe o link com sua comunidade!
             </p>
             <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-              Criar primeiro set ✨
+              Criar primeiro set
             </button>
           </div>
         ) : (
           <>
             <div className={styles.setsList}>
               {sets.map((set) => {
-                const sm = STATUS_LABELS[set.status] || { label: set.status, cls: 'badge-gray', emoji: '?' };
+                const sm = STATUS_LABELS[set.status] || { label: set.status, cls: 'badge-gray', Icon: FileText };
+                const StatusIcon = sm.Icon;
                 const claimDate = set.claimOpensAt ? new Date(set.claimOpensAt) : null;
                 const isActioning = actioningId === set.id;
                 const isClosed = set.status === 'Closed';
@@ -223,14 +248,16 @@ export default function Dashboard() {
                     <div className={styles.setThumb}>
                       {set.imageUrl
                         ? <img src={set.imageUrl} alt={set.title} />
-                        : <div className={styles.setThumbPlaceholder}>🃏</div>
+                        : <div className={styles.setThumbPlaceholder}><Package size={22} strokeWidth={1.5} color="var(--blush)" /></div>
                       }
                     </div>
 
                     {/* Info */}
                     <div className={styles.setInfo}>
                       <div className={styles.setInfoTop}>
-                        <span className={`badge ${sm.cls}`}>{sm.emoji} {sm.label}</span>
+                        <span className={`badge ${sm.cls}`}>
+                          <StatusIcon size={10} strokeWidth={2.5} /> {sm.label}
+                        </span>
                         <span style={{ fontSize: '0.73rem', color: 'var(--gray)' }}>
                           {set.totalPhotocards || 0} membro{set.totalPhotocards !== 1 ? 's' : ''}
                         </span>
@@ -238,7 +265,7 @@ export default function Dashboard() {
                       <h3 className={styles.setName}>{set.title || '(sem título)'}</h3>
                       {claimDate && (
                         <div className={styles.claimDate}>
-                          <span>⏰</span>
+                          <Clock size={11} strokeWidth={2} />
                           <span>
                             Claim: {claimDate.toLocaleString('pt-BR', {
                               day: '2-digit', month: '2-digit',
@@ -252,12 +279,12 @@ export default function Dashboard() {
                         <div className={styles.draftHint}>
                           {!set.totalPhotocards ? (
                             <>
-                              <span className={styles.draftHintIcon}>⚠️</span>
+                              <AlertTriangle size={13} strokeWidth={2} className={styles.draftHintIcon} color="var(--ink-soft)" />
                               <span>Adicione os membros desse set para poder publicá-lo.</span>
                             </>
                           ) : (
                             <>
-                              <span className={styles.draftHintIcon}>🚀</span>
+                              <Rocket size={13} strokeWidth={2} className={styles.draftHintIcon} color="var(--ink-soft)" />
                               <span>Publique esse set para que os collectors possam ver e dar claim!</span>
                             </>
                           )}
@@ -265,32 +292,27 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* ── Actions ──
-                        Draft     → Ver · 🔗 · ✏️ Editar · 📢 Publicar · Cancelar
-                        Published → Ver · 🔗 · Cancelar
-                        Open      → Ver · 🔗 · 🔒 Fechar
-                        Closed    → Ver · 🔗 · Excluir
-                    */}
+                    {/* Actions */}
                     <div className={styles.setActions}>
                       <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/set/${set.accessToken}`)}>
                         Ver →
                       </button>
 
                       <button className="btn btn-secondary btn-sm" onClick={() => copyLink(set)} title="Copiar link">
-                        🔗
+                        <Link2 size={14} strokeWidth={2} />
                       </button>
 
                       {/* Draft only */}
                       {set.status === 'Draft' && (
                         <button className="btn btn-secondary btn-sm" onClick={() => setEditModal(set)}>
-                           Editar
+                          <Pencil size={13} strokeWidth={2} /> Editar
                         </button>
                       )}
                       {set.status === 'Draft' && !!set.totalPhotocards && (
                         <button className="btn btn-primary btn-sm" disabled={isActioning} onClick={() => handlePublish(set)}>
                           {isActioning
                             ? <span className="spinner" style={{ width: 14, height: 14 }} />
-                            : '📢 Publicar'
+                            : <><Send size={13} strokeWidth={2} /> Publicar</>
                           }
                         </button>
                       )}
@@ -305,7 +327,10 @@ export default function Dashboard() {
                       {/* Open → Fechar */}
                       {set.status === 'Open' && (
                         <button className="btn btn-danger btn-sm" disabled={isActioning} onClick={() => setCloseModal(set)}>
-                          {isActioning ? <span className="spinner" style={{ width: 14, height: 14 }} /> : '🔒 Fechar'}
+                          {isActioning
+                            ? <span className="spinner" style={{ width: 14, height: 14 }} />
+                            : <><Lock size={13} strokeWidth={2} /> Fechar</>
+                          }
                         </button>
                       )}
 
@@ -313,7 +338,10 @@ export default function Dashboard() {
                       {isClosed && (
                         <button className="btn btn-ghost btn-sm" disabled={isActioning} onClick={() => setDeleteModal(set)}
                           style={{ color: '#c0392b' }}>
-                          {isActioning ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Excluir'}
+                          {isActioning
+                            ? <span className="spinner" style={{ width: 14, height: 14 }} />
+                            : <><Trash2 size={13} strokeWidth={2} /> Excluir</>
+                          }
                         </button>
                       )}
                     </div>
@@ -354,7 +382,7 @@ export default function Dashboard() {
           onClose={() => setShowCreate(false)}
           onCreated={(newSet) => {
             setShowCreate(false);
-            toast.success('Set criado! 🎉');
+            toast.success('Set criado!');
             navigate(`/set/${newSet.accessToken}`);
           }}
         />
