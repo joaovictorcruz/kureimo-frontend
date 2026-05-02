@@ -46,7 +46,7 @@ export default function AddPhotocardModal({ accessToken, onClose, onAdded }) {
             <label>Artista / Nome *</label>
             <input
               className="input"
-              placeholder="ex: Jimin, Karina, Jennie"
+              placeholder="ex: Jiwoo, Karina, V"
               value={form.artistName}
               onChange={(e) => set('artistName', e.target.value)}
               autoFocus

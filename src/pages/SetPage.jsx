@@ -22,14 +22,13 @@ import {
   Plus,
   Pencil,
   Check,
-  Trash2,
   GripVertical,
   AlertTriangle,
   CheckCircle2,
   Loader2,
   Heart,
   Crown,
-  UserCircle2,
+  X,
 } from 'lucide-react';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -58,6 +57,22 @@ const FONT_MAP = {
   'Space Mono':         "'Space Mono', monospace",
 };
 
+function sessionKey(token) { return `claimed_${token}`; }
+
+function getSessionClaimed(token) {
+  try { return new Set(JSON.parse(sessionStorage.getItem(sessionKey(token)) || '[]')); }
+  catch { return new Set(); }
+}
+
+function addSessionClaimed(token, photocardId) {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(sessionKey(token)) || '[]');
+    if (!stored.includes(photocardId)) {
+      sessionStorage.setItem(sessionKey(token), JSON.stringify([...stored, photocardId]));
+    }
+  } catch { /* sessionStorage indisponivel */ }
+}
+
 export default function SetPage() {
   const { token } = useParams();
   const { user, isGom } = useAuth();
@@ -71,18 +86,15 @@ export default function SetPage() {
   const [showAddCard, setShowAddCard] = useState(false);
   const [cancelModal, setCancelModal] = useState(false);
 
-  // Edição de membros
   const [editMode, setEditMode]     = useState(false);
   const [editingPc, setEditingPc]   = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [savingPc, setSavingPc]     = useState(false);
   const [reordering, setReordering] = useState(false);
 
-  // Drag-and-drop reorder
   const dragIndexRef = useRef(null);
   const [dragOver, setDragOver] = useState(null);
 
-  // Alterar imagem do set
   const imgInputRef                     = useRef(null);
   const [cropSrc, setCropSrc]           = useState(null);
   const [uploadingImg, setUploadingImg] = useState(false);
@@ -125,13 +137,20 @@ export default function SetPage() {
       );
       const enrichedSet = { ...data, photocards: enriched };
       setSet(enrichedSet);
+
       if (user) {
-        const ids = new Set(
+        const fromApi = new Set(
           enriched
-            .filter((pc) => (pc.claims || []).some((c) => c.userId === user.id))
+            .filter((pc) =>
+              (pc.claims || []).some((c) =>
+                (user.id && c.userId === user.id) ||
+                (!user.id && c.username && c.username === user.username)
+              )
+            )
             .map((pc) => pc.id)
         );
-        setClaimedIds(ids);
+        const fromSession = getSessionClaimed(token);
+        setClaimedIds(new Set([...fromApi, ...fromSession]));
       }
     } catch {
       toast.error('Set não encontrado ou sem acesso');
@@ -153,6 +172,7 @@ export default function SetPage() {
     try {
       const claim = await claimsApi.claim(photocardId);
       setClaimedIds((p) => new Set([...p, photocardId]));
+      addSessionClaimed(token, photocardId);
       setSet((prev) => {
         if (!prev) return prev;
         const pcs = (prev.photocards || []).map((pc) => {
@@ -189,7 +209,7 @@ export default function SetPage() {
     });
   };
 
-  // ── Ações GOM: set ──
+  // ── Acoes GOM: set ──
   const handleCancel = async () => {
     setCancelModal(false);
     try {
@@ -221,7 +241,7 @@ export default function SetPage() {
     }
   };
 
-  // ── Ações GOM: membros ──
+  // ── Acoes GOM: membros ──
   const handleSavePc = async () => {
     if (!editingPc?.artistName?.trim()) { toast.error('Nome do artista é obrigatório.'); return; }
     setSavingPc(true);
@@ -352,21 +372,26 @@ export default function SetPage() {
   const fontColor = set.fontColor || null;
   const fontCss   = set.fontStyle ? FONT_MAP[set.fontStyle] || `'${set.fontStyle}', sans-serif` : null;
 
-  const gon = set.gon || {};
+  const gon        = set.gon || {};
   const gonName    = gon.username    || set.gomUsername || set.ownerUsername || 'GOM';
   const gonPicUrl  = gon.profilePicUrl || null;
   const gonInitial = gonName[0].toUpperCase();
 
   const statusMeta = {
-    Draft:     { label: 'Rascunho',   cls: 'badge-gray' },
-    Published: { label: 'Publicado',  cls: 'badge-lilac' },
-    Open:      { label: 'AO VIVO',    cls: 'badge-live'  },
-    Closed:    { label: 'Encerrado',  cls: 'badge-gray'  },
+    Draft:     { label: 'Rascunho',  cls: 'badge-gray'  },
+    Published: { label: 'Publicado', cls: 'badge-lilac' },
+    Open:      { label: 'AO VIVO',   cls: 'badge-live'  },
+    Closed:    { label: 'Encerrado', cls: 'badge-gray'  },
   };
   const sm = statusMeta[set.status] || { label: set.status, cls: 'badge-gray' };
 
   const canAddMember  = isGom && set.status === 'Draft';
-  const canEditMember = isGom && (set.status === 'Draft' || set.status === 'Published');
+  const canEditMember = isGom && (set.status === 'Draft' || set.status === 'Published') && !!(set.photocards || []).length;
+
+  const isOwnerGom = isGom && (
+    (user?.id && gon.id && user.id === gon.id) ||
+    (!user?.id && user?.username && gon.username && user.username === gon.username)
+  );
 
   return (
     <main className={styles.page}>
@@ -375,7 +400,7 @@ export default function SetPage() {
       <div className={`page-container ${styles.inner}`}>
         <div className={styles.layout}>
 
-          {/* ══════════ LEFT COLUMN ══════════ */}
+          {/* LEFT COLUMN */}
           <div className={styles.leftCol}>
 
             <TimerBanner
@@ -396,15 +421,18 @@ export default function SetPage() {
                     <span style={{ fontSize: '0.85rem', color: 'var(--gray)', marginTop: 8 }}>Nenhuma imagem definida</span>
                   </div>
                 )}
+
                 <span className={`badge ${sm.cls}`} style={{ position: 'absolute', top: 14, left: 14, display: 'flex', alignItems: 'center', gap: 4 }}>
                   {set.status === 'Open' && <Radio size={10} strokeWidth={2.5} />}
                   {sm.label}
                 </span>
+
                 {connected && isStreamingPhase && (
                   <span className="badge badge-live" style={{ position: 'absolute', top: 14, right: 14, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span className={styles.liveDot} /> Tempo real
                   </span>
                 )}
+
                 {isGom && (
                   <>
                     <button
@@ -427,16 +455,9 @@ export default function SetPage() {
               <div className={styles.setMeta}>
                 <div className={styles.gomRow}>
                   {gonPicUrl ? (
-                    <img
-                      src={gonPicUrl}
-                      alt={gonName}
-                      style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
+                    <img src={gonPicUrl} alt={gonName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; }} />
                   ) : (
-                    <div className="avatar" style={{ width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0 }}>
-                      {gonInitial}
-                    </div>
+                    <div className="avatar" style={{ width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0 }}>{gonInitial}</div>
                   )}
                   <div>
                     <div className={styles.gomName}>{gonName}</div>
@@ -444,13 +465,7 @@ export default function SetPage() {
                   </div>
                 </div>
 
-                <h2
-                  className={styles.setTitle}
-                  style={{
-                    ...(fontCss   ? { fontFamily: fontCss }   : {}),
-                    ...(fontColor ? { color: fontColor }       : {}),
-                  }}
-                >
+                <h2 className={styles.setTitle} style={{ ...(fontCss ? { fontFamily: fontCss } : {}), ...(fontColor ? { color: fontColor } : {}) }}>
                   {set.title || 'Set de Photocards'}
                 </h2>
 
@@ -474,38 +489,32 @@ export default function SetPage() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {set.status === 'Draft' && !!(set.photocards || []).length && (
                     <button className="btn btn-primary btn-sm" onClick={handlePublish} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Megaphone size={13} strokeWidth={2} />
-                      Publicar
+                      <Megaphone size={13} strokeWidth={2} /> Publicar
                     </button>
                   )}
                   {(set.status === 'Draft' || set.status === 'Published') && (
                     <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <XCircle size={13} strokeWidth={2} />
-                      Cancelar set
+                      <XCircle size={13} strokeWidth={2} /> Cancelar set
                     </button>
                   )}
                   {set.status === 'Open' && (
                     <button className="btn btn-danger btn-sm" onClick={handleClose} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Lock size={13} strokeWidth={2} />
-                      Fechar claim
+                      <Lock size={13} strokeWidth={2} /> Fechar claim
                     </button>
                   )}
                   <button className="btn btn-secondary btn-sm" onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
                     toast.success('Link copiado!');
                   }} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <LinkIcon size={13} strokeWidth={2} />
-                    Link
+                    <LinkIcon size={13} strokeWidth={2} /> Link
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* ══════════ RIGHT COLUMN ══════════ */}
+          {/* RIGHT COLUMN */}
           <div className={styles.rightCol}>
-
-            {/* Header com título + botões de ação agrupados */}
             <div className={styles.memberListHeader}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className={styles.memberListTitle}>Membros</span>
@@ -517,13 +526,8 @@ export default function SetPage() {
               {canEditMember && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   {canAddMember && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}
-                      onClick={() => setShowAddCard(true)}
-                    >
-                      <Plus size={13} strokeWidth={2.5} />
-                      Membro
+                    <button className="btn btn-secondary btn-sm" style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => setShowAddCard(true)}>
+                      <Plus size={13} strokeWidth={2.5} /> Membro
                     </button>
                   )}
                   <button
@@ -543,7 +547,7 @@ export default function SetPage() {
             {editMode && (
               <div className={styles.gomHint} style={{ marginBottom: 10 }}>
                 <GripVertical size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
-                <span>Arraste para reordenar · Clique em editar para alterar nome/versão · ícone de lixeira para excluir</span>
+                <span>Arraste para reordenar · clique em Editar para alterar nome/versão · Excluir para remover</span>
               </div>
             )}
 
@@ -579,8 +583,7 @@ export default function SetPage() {
                   <p style={{ color: 'var(--gray)', fontSize: '0.88rem', marginTop: 8 }}>Nenhum membro adicionado.</p>
                   {canAddMember && (
                     <button className="btn btn-primary btn-sm" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => setShowAddCard(true)}>
-                      <Plus size={13} strokeWidth={2.5} />
-                      Adicionar
+                      <Plus size={13} strokeWidth={2.5} /> Adicionar
                     </button>
                   )}
                 </div>
@@ -613,7 +616,9 @@ export default function SetPage() {
                       claimed={claimedIds.has(pc.id)}
                       claiming={claimingId === pc.id}
                       userId={user?.id}
+                      userUsername={user?.username}
                       isGom={isGom}
+                      isOwnerGom={isOwnerGom}
                       onClaim={(e) => handleClaim(e, pc.id)}
                       onOpenRank={() => setRankModal(pc)}
                     />
@@ -625,11 +630,11 @@ export default function SetPage() {
         </div>
       </div>
 
-      {/* ── Modais ── */}
+      {/* Modais */}
       {cancelModal && (
         <ConfirmModal
           title="Cancelar set"
-          message={`Tem certeza que deseja cancelar o set "${set.title}"?\n\nEle será removido e os collectors perderão o acesso.`}
+          message={`Tem certeza que deseja cancelar o set "${set.title}"?`}
           confirmLabel="Sim, cancelar set"
           confirmClass="btn-danger"
           onConfirm={handleCancel}
@@ -640,7 +645,7 @@ export default function SetPage() {
       {deletingId && (
         <ConfirmModal
           title="Remover membro"
-          message="Tem certeza que deseja remover este membro do set? Todos os claims associados serão perdidos."
+          message="Tem certeza que deseja remover este membro? Todos os claims associados serão perdidos."
           confirmLabel="Sim, remover"
           confirmClass="btn-danger"
           onConfirm={handleDeletePc}
@@ -693,7 +698,7 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
 
   if (phase === 'closed') return (
     <div className={`${styles.timerBanner} ${styles.timerClosed}`}>
-      <Lock size={16} strokeWidth={2} />
+      <Lock size={15} strokeWidth={2} style={{ flexShrink: 0 }} />
       <span>Claim encerrado</span>
       {formatted && <span className={styles.timerDate}>· {formatted}</span>}
     </div>
@@ -709,7 +714,7 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
         }
       </span>
       <span className={styles.timerLabel} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <Zap size={14} strokeWidth={2.5} />
+        <Zap size={13} strokeWidth={2.5} />
         claim aberto!
       </span>
     </div>
@@ -734,13 +739,17 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
 }
 
 /* ── Member Row (modo normal) ── */
-function MemberRow({ pc, phase, claimed, claiming, userId, isGom, onClaim, onOpenRank }) {
-  const canClaim = (phase === 'open') && !claimed;
-  const blurred  = !isGom && (phase === 'waiting' || phase === 'streaming');
-  const isClosed = phase === 'closed';
-  const claims     = pc.claims || [];
-  const claimCount = claims.length;
-  const myPos      = claims.findIndex((c) => c.userId === userId);
+function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, isOwnerGom, onClaim, onOpenRank }) {
+  const canClaim    = (phase === 'open') && !claimed && !isOwnerGom;
+  const blurred     = !isGom && (phase === 'waiting' || phase === 'streaming');
+  const isClosed    = phase === 'closed';
+  const claims      = pc.claims || [];
+  const claimCount  = claims.length;
+  const myPos       = claims.findIndex((c) =>
+    (userId && c.userId === userId) ||
+    (!userId && userUsername && c.username === userUsername)
+  );
+  const isGomBlocked = isOwnerGom;
 
   return (
     <div
@@ -782,19 +791,34 @@ function MemberRow({ pc, phase, claimed, claiming, userId, isGom, onClaim, onOpe
       </div>
 
       <button
-        className={`${styles.claimCircle} ${claimed ? styles.claimCircleDone : ''} ${canClaim ? styles.claimCircleActive : ''} ${isClosed ? styles.claimCircleClosed : ''}`}
-        onClick={onClaim}
+        className={`
+          ${styles.claimCircle}
+          ${claimed      ? styles.claimCircleDone   : ''}
+          ${canClaim     ? styles.claimCircleActive  : ''}
+          ${isClosed     ? styles.claimCircleClosed  : ''}
+          ${isGomBlocked ? styles.claimCircleClosed  : ''}
+        `}
+        onClick={(e) => { e.stopPropagation(); if (canClaim) onClaim(e); }}
         disabled={!canClaim || claiming}
-        title={isClosed ? 'Claim encerrado' : claimed ? `Posição #${myPos + 1}` : canClaim ? 'Dar claim!' : 'Aguardando...'}
-      >
-        {claiming
-          ? <Loader2 size={14} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
-          : isClosed
-            ? <Lock size={14} strokeWidth={2} />
-            : claimed
-              ? <Check size={15} strokeWidth={2.5} />
-              : <Heart size={15} strokeWidth={2} />
+        title={
+          isGomBlocked ? 'GOMs não podem dar claim no próprio set' :
+          isClosed     ? 'Claim encerrado' :
+          claimed      ? `Posição #${myPos + 1}` :
+          canClaim     ? 'Dar claim!' :
+          'Aguardando...'
         }
+      >
+        {claiming ? (
+          <Loader2 size={14} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+        ) : isGomBlocked ? (
+          <X size={14} strokeWidth={2.5} style={{ color: 'var(--gray)' }} />
+        ) : isClosed ? (
+          <Lock size={14} strokeWidth={2} />
+        ) : claimed ? (
+          <Check size={15} strokeWidth={2.5} />
+        ) : (
+          <Heart size={15} strokeWidth={2} />
+        )}
       </button>
     </div>
   );
@@ -852,23 +876,41 @@ function MemberRowEdit({
       <div className={styles.rowEditActions}>
         {isEditing ? (
           <>
-            <button className="btn btn-ghost btn-sm" style={{ padding: '5px 10px' }} onClick={onCancelEdit} disabled={savingPc}>
-              <XCircle size={14} strokeWidth={2} />
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '5px 10px', fontSize: '0.78rem' }}
+              onClick={onCancelEdit}
+              disabled={savingPc}
+            >
+              Cancelar
             </button>
-            <button className="btn btn-primary btn-sm" style={{ padding: '5px 12px' }} onClick={onSave} disabled={savingPc}>
+            <button
+              className="btn btn-primary btn-sm"
+              style={{ padding: '5px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}
+              onClick={onSave}
+              disabled={savingPc}
+            >
               {savingPc
                 ? <Loader2 size={13} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
-                : <Check size={14} strokeWidth={2.5} />
+                : <><Check size={13} strokeWidth={2.5} /> Salvar</>
               }
             </button>
           </>
         ) : (
           <>
-            <button className="btn btn-secondary btn-sm" style={{ padding: '5px 10px' }} onClick={onEdit} title="Editar">
-              <Pencil size={13} strokeWidth={2} />
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '5px 10px', fontSize: '0.78rem' }}
+              onClick={onEdit}
+            >
+              Editar
             </button>
-            <button className="btn btn-ghost btn-sm" style={{ padding: '5px 10px', color: '#c0392b' }} onClick={onDelete} title="Excluir">
-              <Trash2 size={13} strokeWidth={2} />
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '5px 10px', fontSize: '0.78rem', color: '#c0392b' }}
+              onClick={onDelete}
+            >
+              Excluir
             </button>
           </>
         )}

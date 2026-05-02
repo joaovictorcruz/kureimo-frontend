@@ -124,10 +124,10 @@ export default function Home() {
             {/* Mock member rows */}
             <div className={styles.mockRows}>
               {[
-                { name: 'Jimin', blur: false, claimed: true },
-                { name: 'V',     blur: false, claimed: false, active: true },
-                { name: 'Jungkook', blur: true },
-                { name: 'Jin',   blur: true },
+                { name: 'Jiwoo', blur: false, claimed: true },
+                { name: 'Ian',     blur: false, claimed: false, active: true },
+                { name: 'Stella', blur: true },
+                { name: 'Carmen',   blur: true },
               ].map((m, i) => (
                 <div key={i} className={`${styles.mockRow} ${m.blur ? styles.mockRowBlur : ''}`}>
                   <div className={styles.mockRowName}>

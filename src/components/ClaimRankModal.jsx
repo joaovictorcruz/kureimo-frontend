@@ -1,4 +1,7 @@
 import styles from './ClaimRankModal.module.css';
+import { X, Smartphone, Trophy, InboxIcon } from 'lucide-react';
+
+const MEDAL_COLORS = ['#F59E0B', '#9CA3AF', '#CD7C2F'];
 
 export default function ClaimRankModal({ photocard, userId, onClose }) {
   const claims = [...(photocard.claims || [])].sort(
@@ -15,29 +18,31 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
             <div className={styles.artistName}>{photocard.artistName || 'Photocard'}</div>
             {photocard.version && <div className={styles.version}>{photocard.version}</div>}
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px 10px' }}>✕</button>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px 10px' }}>
+            <X size={16} strokeWidth={2} />
+          </button>
         </div>
 
         <hr className="divider" />
 
         {claims.length === 0 ? (
           <div className={styles.empty}>
-            <span style={{ fontSize: '1.5rem' }}> <p>Nenhum claim ainda.</p></span>
-           
+            <InboxIcon size={32} strokeWidth={1.5} style={{ color: 'var(--gray)', marginBottom: 8 }} />
+            <p>Nenhum claim ainda.</p>
           </div>
         ) : (
           <>
             <div className={styles.rankList}>
               {claims.map((c, i) => {
-                const isMe       = c.userId === userId;
+                const isMe        = c.userId === userId;
                 const claimedDate = new Date(c.claimedAt);
                 const time = claimedDate.toLocaleTimeString('pt-BR', {
                   hour: '2-digit', minute: '2-digit', second: '2-digit',
                 });
-                const ms     = String(claimedDate.getMilliseconds()).padStart(3, '0');
-                const medal  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
-                const picUrl = c.profilePicUrl || null;
-                const name   = c.username || c.userName || 'usuário';
+                const ms      = String(claimedDate.getMilliseconds()).padStart(3, '0');
+                const hasMedal = i < 3;
+                const picUrl  = c.profilePicUrl || null;
+                const name    = c.username || c.userName || 'usuário';
                 const initial = name[0].toUpperCase();
 
                 return (
@@ -46,18 +51,22 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
                     className={`${styles.rankRow} ${isMe ? styles.myRow : ''} claim-pulse`}
                     style={{ animationDelay: `${i * 40}ms` }}
                   >
-                    {/* Posição — fora do mini-card */}
+                    {/* Posição */}
                     <div className={styles.pos}>
-                      {medal
-                        ? <span className={styles.medal}>{medal}</span>
-                        : <span className={styles.posNum}>#{i + 1}</span>
-                      }
+                      {hasMedal ? (
+                        <Trophy
+                          size={18}
+                          strokeWidth={2}
+                          style={{ color: MEDAL_COLORS[i], flexShrink: 0 }}
+                        />
+                      ) : (
+                        <span className={styles.posNum}>#{i + 1}</span>
+                      )}
                     </div>
 
-                    {/* Mini-card: avatar + nome / contato / horário */}
+                    {/* Mini-card */}
                     <div className={`${styles.miniCard} ${isMe ? styles.miniCardMe : ''}`}>
                       <div className={styles.miniLeft}>
-                        {/* Avatar com foto de perfil */}
                         {picUrl ? (
                           <img
                             src={picUrl}
@@ -81,7 +90,10 @@ export default function ClaimRankModal({ photocard, userId, onClose }) {
                             {isMe && <span className={styles.meMark}> (você)</span>}
                           </span>
                           {c.phoneNumber && (
-                            <span className={styles.miniPhone}>📱 {c.phoneNumber}</span>
+                            <span className={styles.miniPhone} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Smartphone size={11} strokeWidth={2} />
+                              {c.phoneNumber}
+                            </span>
                           )}
                         </div>
                       </div>
