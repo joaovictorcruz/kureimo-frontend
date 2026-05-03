@@ -278,7 +278,6 @@ export default function EditSetModal({ set, onClose, onSaved }) {
         }
       }
 
-      toast.success('Set atualizado! ✨');
       onSaved(updated);
     } catch (err) {
       toast.error(err?.message || 'Erro ao salvar.');
@@ -295,7 +294,7 @@ export default function EditSetModal({ set, onClose, onSaved }) {
         <div className="card modal" style={{ maxWidth: 520, overflowY: 'auto' }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h2 style={{ fontSize: '1.35rem' }}> Editar set</h2>
+            <h2 style={{ fontSize: '1.35rem' }}>✏️ Editar set</h2>
             <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px 10px' }}>✕</button>
           </div>
 

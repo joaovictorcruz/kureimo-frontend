@@ -186,17 +186,9 @@ export default function ProfilePage() {
                     onChange={handleAvatarFileChange}
                     style={{ display: 'none' }}
                   />
-                </div>
+              </div>
                 <h2 className={styles.profileName}>{user.username}</h2>
                 <p className={styles.profileEmail}>{user.email}</p>
-                {user.role && (
-                  <span className={`badge ${isGom ? 'badge-pink' : 'badge-lilac'}`} style={{ marginTop: 8 }}>
-                    {isGom
-                      ? <><Crown size={10} strokeWidth={2.5} /> GOM</>
-                      : <><Sparkles size={10} strokeWidth={2.5} /> Usuária</>
-                    }
-                  </span>
-                )}
               </div>
 
               <div className={`card ${styles.quickNav}`}>

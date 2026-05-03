@@ -9,6 +9,7 @@ import AddPhotocardModal from '../components/AddPhotocardModal';
 import ClaimRankModal from '../components/ClaimRankModal';
 import ConfirmModal from '../components/ConfirmModal';
 import ImageCropModal from '../components/ImageCropModal';
+import EditSetModal from '../components/EditSetModal';
 import styles from './SetPage.module.css';
 import {
   Lock,
@@ -85,6 +86,7 @@ export default function SetPage() {
   const [rankModal, setRankModal]   = useState(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cancelModal, setCancelModal] = useState(false);
+  const [editSetModal, setEditSetModal] = useState(false);
 
   const [editMode, setEditMode]     = useState(false);
   const [editingPc, setEditingPc]   = useState(null);
@@ -209,7 +211,7 @@ export default function SetPage() {
     });
   };
 
-  // ── Acoes GOM: set ──
+  // ── Ações GOM: set ──
   const handleCancel = async () => {
     setCancelModal(false);
     try {
@@ -241,7 +243,7 @@ export default function SetPage() {
     }
   };
 
-  // ── Acoes GOM: membros ──
+  // ── Ações GOM: membros ──
   const handleSavePc = async () => {
     if (!editingPc?.artistName?.trim()) { toast.error('Nome do artista é obrigatório.'); return; }
     setSavingPc(true);
@@ -487,6 +489,18 @@ export default function SetPage() {
                   Painel GOM
                 </span>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+
+                  {/* Editar set — só em Draft */}
+                  {set.status === 'Draft' && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setEditSetModal(true)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+                    >
+                      <Pencil size={13} strokeWidth={2} /> Editar set
+                    </button>
+                  )}
+
                   {set.status === 'Draft' && !!(set.photocards || []).length && (
                     <button className="btn btn-primary btn-sm" onClick={handlePublish} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Megaphone size={13} strokeWidth={2} /> Publicar
@@ -504,7 +518,7 @@ export default function SetPage() {
                   )}
                   <button className="btn btn-secondary btn-sm" onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
-                    toast.success('Link copiado!');
+                    toast.success('Link copiado! 🔗');
                   }} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <LinkIcon size={13} strokeWidth={2} /> Link
                   </button>
@@ -672,6 +686,19 @@ export default function SetPage() {
             );
             setShowAddCard(false);
             toast.success('Membro adicionado!');
+          }}
+        />
+      )}
+
+      {/* Modal de editar set — só aparece em Draft */}
+      {editSetModal && (
+        <EditSetModal
+          set={set}
+          onClose={() => setEditSetModal(false)}
+          onSaved={() => {
+            setEditSetModal(false);
+            toast.success('Set atualizado! ✨');
+            fetchSet();
           }}
         />
       )}

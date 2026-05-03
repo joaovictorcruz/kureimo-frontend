@@ -8,7 +8,6 @@ export default function AddPhotocardModal({ accessToken, onClose, onAdded }) {
   const [form, setForm] = useState({
     artistName: '',
     version: '',
-    queuePosition: 1,
   });
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -20,9 +19,8 @@ export default function AddPhotocardModal({ accessToken, onClose, onAdded }) {
     setLoading(true);
     try {
       const pc = await setsApi.addPhotocard(accessToken, {
-        artistName: form.artistName,
-        version: form.version || undefined,
-        queuePosition: Number(form.queuePosition),
+        artistName: form.artistName.trim(),
+        version:    form.version.trim() || undefined,
       });
       onAdded(pc);
       toast.success('Membro adicionado! 🃏');
@@ -63,19 +61,11 @@ export default function AddPhotocardModal({ accessToken, onClose, onAdded }) {
             />
           </div>
 
-          <div className="field">
-            <label>Posição na fila</label>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              value={form.queuePosition}
-              onChange={(e) => set('queuePosition', e.target.value)}
-            />
-          </div>
-
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? <span className="spinner" style={{ width: 18, height: 18 }} /> : '+ Adicionar membro'}
+            {loading
+              ? <span className="spinner" style={{ width: 18, height: 18 }} />
+              : '+ Adicionar membro'
+            }
           </button>
         </form>
       </div>
