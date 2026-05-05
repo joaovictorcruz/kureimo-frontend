@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { usersApi } from '../api/client';
 import ImageCropModal from '../components/ImageCropModal';
+import DeleteAccountModal from '../components/DeleteAccountModal';
 import {
   User,
   Pencil,
@@ -32,6 +33,8 @@ export default function ProfilePage() {
 
   const [cropSrc, setCropSrc]                 = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Formulário de edição — populado com dados do contexto, sem GET extra
   const [profile, setProfile] = useState({ username: '', email: '', phoneNumber: '' });
@@ -142,15 +145,10 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!window.confirm('Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.')) return;
-    try {
-      await usersApi.delete(user.id);
-      logout();
-      navigate('/');
-      toast.success('Conta excluída.');
-    } catch {
-      toast.error('Erro ao excluir conta.');
-    }
+    await usersApi.delete(user.id);
+    logout();
+    navigate('/');
+    toast.success('Conta excluída.');
   };
 
   return (
@@ -238,7 +236,7 @@ export default function ProfilePage() {
                       Zona de perigo
                     </p>
                     <p className={styles.dangerDesc}>Excluir a conta é permanente e remove todos os seus dados.</p>
-                    <button className="btn btn-danger btn-sm" onClick={handleDeleteAccount}>Excluir conta</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => setShowDeleteModal(true)}>Excluir conta</button>
                   </div>
                 </div>
               )}
@@ -336,6 +334,14 @@ export default function ProfilePage() {
           aspect={1}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
+        />
+      )}
+
+      {showDeleteModal && (
+        <DeleteAccountModal
+          username={user.username}
+          onConfirm={handleDeleteAccount}
+          onClose={() => setShowDeleteModal(false)}
         />
       )}
     </>

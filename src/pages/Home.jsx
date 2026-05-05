@@ -150,7 +150,7 @@ export default function Home() {
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <h2>Por que usar o Kureimo?</h2>
             <p style={{ color: 'var(--gray)', marginTop: 10, maxWidth: 460, margin: '10px auto 0', fontSize: '0.95rem' }}>
-              Feito especialmente pra comunidade de kpop do Brasil
+              Feito especialmente para os collectors e goms do Brasil
             </p>
           </div>
 

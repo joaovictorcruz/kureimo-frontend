@@ -1,11 +1,9 @@
-const IS_PROD  = import.meta.env.MODE === 'production';
-const BASE_URL = IS_PROD ? 'https://api.kureimo.com' : '/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+export const SIGNALR_URL = import.meta.env.VITE_SIGNALR_URL;
 
-// Em dev: /hubs/set vai pelo proxy do Vite (ws: true) direto para localhost:7011
-// Em prod: URL absoluta com wss://
-export const SIGNALR_URL = IS_PROD
-  ? 'https://api.kureimo.com/hubs/set'
-  : '/hubs/set';
+// Rotas de autenticação não devem disparar session-invalid em 401
+// (credenciais erradas não == sessão expirada)
+const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password'];
 
 function dispatchSessionInvalid(reason) {
   window.dispatchEvent(
@@ -15,6 +13,7 @@ function dispatchSessionInvalid(reason) {
 
 const request = async (method, path, body) => {
   const headers = { 'Content-Type': 'application/json' };
+  const isAuthPath = AUTH_PATHS.includes(path);
 
   let res;
   try {
@@ -25,13 +24,21 @@ const request = async (method, path, body) => {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    dispatchSessionInvalid('network');
+    if (!isAuthPath) dispatchSessionInvalid('network');
     throw new Error('Sem conexão com o servidor. Verifique sua internet.');
   }
 
   if (res.status === 401) {
-    dispatchSessionInvalid('expired');
-    throw new Error('Sessão expirada.');
+    if (!isAuthPath) {
+      dispatchSessionInvalid('expired');
+    }
+    const errData = await res.json().catch(() => ({}));
+    const message =
+      errData?.error || errData?.detail || errData?.title || errData?.message || 'Credenciais inválidas.';
+    const err = new Error(message);
+    err.status = 401;
+    err.body   = errData;
+    throw err;
   }
 
   if (res.status === 204) return null;
@@ -81,10 +88,12 @@ const requestFormData = async (method, path, formData) => {
 };
 
 export const authApi = {
-  login:    (dto) => request('POST', '/auth/login', dto),
-  register: (dto) => request('POST', '/auth/register', dto),
-  me:       ()    => request('GET',  '/auth/me'),
-  logout:   ()    => request('POST', '/auth/logout'),
+  login:          (dto)             => request('POST', '/auth/login', dto),
+  register:       (dto)             => request('POST', '/auth/register', dto),
+  me:             ()                => request('GET',  '/auth/me'),
+  logout:         ()                => request('POST', '/auth/logout'),
+  forgotPassword: (email)           => request('POST', '/auth/forgot-password', { email }),
+  resetPassword:  (token, password) => request('POST', '/auth/reset-password', { token, password }),
 };
 
 export const setsApi = {
