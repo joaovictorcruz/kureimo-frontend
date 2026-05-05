@@ -293,7 +293,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="field">
                       <label>Nova senha</label>
-                      <input className="input" type="password" placeholder="Mínimo 6 caracteres"
+                      <input className="input" type="password" placeholder="Mínimo 8 caracteres"
                         value={passwords.newPassword}
                         onChange={(e) => setPasswords((p) => ({ ...p, newPassword: e.target.value }))}
                         required />

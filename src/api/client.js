@@ -93,7 +93,8 @@ export const authApi = {
   me:             ()                => request('GET',  '/auth/me'),
   logout:         ()                => request('POST', '/auth/logout'),
   forgotPassword: (email)           => request('POST', '/auth/forgot-password', { email }),
-  resetPassword:  (token, password) => request('POST', '/auth/reset-password', { token, password }),
+  resetPassword: (token, password) => request('POST', '/auth/reset-password', { token, password }),
+  getSignalRToken: ()                => request('GET',  '/auth/signalr-token'),
 };
 
 export const setsApi = {

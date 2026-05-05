@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as signalR from '@microsoft/signalr';
-import { SIGNALR_URL } from '../api/client';
+import { SIGNALR_URL, authApi } from '../api/client';
 
 export function useSignalR(setId, isActive) {
   const connectionRef = useRef(null);
@@ -10,7 +10,14 @@ export function useSignalR(setId, isActive) {
   const connect = useCallback(async () => {
     if (connectionRef.current) return;
 
-    const token = localStorage.getItem('kureimo_token');
+    let token;
+    try {
+      const data = await authApi.getSignalRToken();
+      token = data.token;
+    } catch (err) {
+      console.error('Falha ao obter token SignalR', err);
+      return;
+    }
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(SIGNALR_URL, {

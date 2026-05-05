@@ -23,7 +23,6 @@ export default function AddPhotocardModal({ accessToken, onClose, onAdded }) {
         version:    form.version.trim() || undefined,
       });
       onAdded(pc);
-      toast.success('Membro adicionado! 🃏');
     } catch (err) {
       toast.error(err?.message || 'Erro ao adicionar membro.');
     } finally {
