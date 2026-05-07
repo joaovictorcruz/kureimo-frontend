@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { SIGNALR_URL, authApi } from '../api/client';
 
-export function useSignalR(setId, isActive) {
+export function useSignalR(accessToken, isActive) {
   const connectionRef = useRef(null);
   const [connected, setConnected] = useState(false);
-  const [claimEvents, setClaimEvents] = useState([]);
+  const [claimEvents, setClaimEvents] = useState([]);   // ClaimRegistered — claim único
+  const [claimUpdates, setClaimUpdates] = useState(null); // ClaimUpdated — lista completa
 
   const connect = useCallback(async () => {
     if (connectionRef.current) return;
@@ -27,7 +28,7 @@ export function useSignalR(setId, isActive) {
       .configureLogging(signalR.LogLevel.Warning)
       .build();
 
-    connection.on('ClaimReceived', (claim) => {
+    connection.on('ClaimRegistered', (claim) => {
       setClaimEvents((prev) => {
         const exists = prev.some((c) => c.id === claim.id);
         if (exists) return prev;
@@ -36,20 +37,20 @@ export function useSignalR(setId, isActive) {
     });
 
     connection.on('ClaimUpdated', (claims) => {
-      setClaimEvents(claims);
+      setClaimUpdates(claims); // substitui lista completa
     });
 
     try {
       await connection.start();
-      if (setId) {
-        await connection.invoke('JoinSet', setId);
+      if (accessToken) {
+        await connection.invoke('JoinSet', accessToken);
       }
       setConnected(true);
       connectionRef.current = connection;
     } catch (err) {
       console.error('SignalR connection failed', err);
     }
-  }, [setId]);
+  }, [accessToken]);
 
   const disconnect = useCallback(async () => {
     if (connectionRef.current) {
@@ -60,15 +61,13 @@ export function useSignalR(setId, isActive) {
   }, []);
 
   useEffect(() => {
-    if (isActive && setId) {
+    if (isActive && accessToken) {
       connect();
     } else {
       disconnect();
     }
-    return () => {
-      disconnect();
-    };
-  }, [isActive, setId]);
+    return () => { disconnect(); };
+  }, [isActive, accessToken]);
 
-  return { connected, claimEvents };
+  return { connected, claimEvents, claimUpdates };
 }

@@ -76,9 +76,10 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (username, email, password, phoneNumber, isGon) => {
-    const data = await authApi.register({ username, email, password, phoneNumber, isGon });
-    applyUser(data);
-    return data;
+    await authApi.register({ username, email, password, phoneNumber, isGon });
+    const me = await authApi.me(); 
+    applyUser(me);
+    return me;
   };
 
   const logout = async () => {

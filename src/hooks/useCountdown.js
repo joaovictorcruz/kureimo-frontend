@@ -1,27 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-/**
- * useCountdown
- *
- * Deriva a fase combinando status da API (fonte da verdade) + timer local.
- *
- * Fases:
- *  - Open   → sempre 'open'    (API forçou)
- *  - Closed → sempre 'closed'  (API forçou)
- *  - Draft / Published → roda o timer, mas Draft trava a fase em 'waiting'
- *    (mostra o countdown, porém não libera claim nem streaming)
- */
 export function useCountdown(targetDate, apiStatus) {
   const [timeLeft, setTimeLeft] = useState(null);
   const [phase, setPhase] = useState('waiting');
+  const [openedAt, setOpenedAt] = useState(null);
+  const openedAtRef = useRef(null); // ref para evitar re-render no tick
 
   useEffect(() => {
-    // Status definitivos vindos da API — sem timer necessário para a fase
-    if (apiStatus === 'Open')   { setPhase('open');   return; }
-    if (apiStatus === 'Closed') { setPhase('closed'); return; }
+    if (apiStatus === 'Open') {
+      setPhase('open');
+      if (!openedAtRef.current) {
+        openedAtRef.current = new Date();
+        setOpenedAt(openedAtRef.current);
+      }
+      return;
+    }
 
-    // Draft e Published: roda o countdown para exibir o tempo
-    // mas Draft mantém fase 'waiting' independente do horário
+    if (apiStatus === 'Closed') {
+      setPhase('closed');
+      return;
+    }
+
     if (!targetDate) return;
 
     const target  = new Date(targetDate).getTime();
@@ -31,14 +30,21 @@ export function useCountdown(targetDate, apiStatus) {
       const diff = target - Date.now();
 
       if (apiStatus === 'Draft') {
-        // Sempre waiting — só exibe o countdown, nunca libera claim
         setPhase('waiting');
       } else {
-        // Published: fase normal pelo timer
-        if      (diff > TEN_MIN)  setPhase('waiting');
-        else if (diff > 0)        setPhase('streaming');
-        else if (diff > -TEN_MIN) setPhase('open');
-        else                      setPhase('closed');
+        if (diff > TEN_MIN) {
+          setPhase('waiting');
+        } else if (diff > 0) {
+          setPhase('streaming');
+        } else if (diff > -TEN_MIN) {
+          setPhase('open');
+          if (!openedAtRef.current) {
+            openedAtRef.current = new Date();
+            setOpenedAt(openedAtRef.current);
+          }
+        } else {
+          setPhase('closed');
+        }
       }
 
       setTimeLeft(formatTime(diff));
@@ -49,7 +55,6 @@ export function useCountdown(targetDate, apiStatus) {
     return () => clearInterval(id);
   }, [targetDate, apiStatus]);
 
-  // Para Open/Closed: calcula o timeLeft estático de referência
   useEffect(() => {
     if ((apiStatus === 'Open' || apiStatus === 'Closed') && targetDate) {
       const diff = new Date(targetDate).getTime() - Date.now();
@@ -57,7 +62,7 @@ export function useCountdown(targetDate, apiStatus) {
     }
   }, [apiStatus, targetDate]);
 
-  return { timeLeft, phase };
+  return { timeLeft, phase, openedAt };
 }
 
 function formatTime(ms) {

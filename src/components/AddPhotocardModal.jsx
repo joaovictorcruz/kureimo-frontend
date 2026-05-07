@@ -51,7 +51,7 @@ export default function AddPhotocardModal({ accessToken, onClose, onAdded }) {
           </div>
 
           <div className="field">
-            <label>Versão</label>
+            <label>Descrição</label>
             <input
               className="input"
               placeholder="ex: Concept Photo ver., Solo ver."

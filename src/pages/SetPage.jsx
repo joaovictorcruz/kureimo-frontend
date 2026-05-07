@@ -12,24 +12,9 @@ import ImageCropModal from '../components/ImageCropModal';
 import EditSetModal from '../components/EditSetModal';
 import styles from './SetPage.module.css';
 import {
-  Lock,
-  Radio,
-  Clock,
-  Zap,
-  Image as ImageIcon,
-  Megaphone,
-  XCircle,
-  Link as LinkIcon,
-  Plus,
-  Pencil,
-  Check,
-  GripVertical,
-  AlertTriangle,
-  CheckCircle2,
-  Loader2,
-  Heart,
-  Crown,
-  X,
+  Lock, Radio, Clock, Zap, Image as ImageIcon, Megaphone, XCircle,
+  Link as LinkIcon, Plus, Pencil, Check, GripVertical, AlertTriangle,
+  CheckCircle2, Loader2, Heart, Crown, X,
 } from 'lucide-react';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -79,19 +64,19 @@ export default function SetPage() {
   const { user, isGom } = useAuth();
   const toast = useToast();
 
-  const [set, setSet]               = useState(null);
-  const [loading, setLoading]       = useState(true);
-  const [claimedIds, setClaimedIds] = useState(new Set());
-  const [claimingId, setClaimingId] = useState(null);
-  const [rankModal, setRankModal]   = useState(null);
+  const [set, setSet]                 = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [claimedIds, setClaimedIds]   = useState(new Set());
+  const [claimingId, setClaimingId]   = useState(null);
+  const [rankModal, setRankModal]     = useState(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cancelModal, setCancelModal] = useState(false);
   const [editSetModal, setEditSetModal] = useState(false);
 
-  const [editMode, setEditMode]     = useState(false);
-  const [editingPc, setEditingPc]   = useState(null);
+  const [editMode, setEditMode]   = useState(false);
+  const [editingPc, setEditingPc] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [savingPc, setSavingPc]     = useState(false);
+  const [savingPc, setSavingPc]   = useState(false);
   const [reordering, setReordering] = useState(false);
 
   const dragIndexRef = useRef(null);
@@ -101,10 +86,11 @@ export default function SetPage() {
   const [cropSrc, setCropSrc]           = useState(null);
   const [uploadingImg, setUploadingImg] = useState(false);
 
-  const { timeLeft, phase } = useCountdown(set?.claimOpensAt, set?.status);
+  const { timeLeft, phase, openedAt } = useCountdown(set?.claimOpensAt, set?.status);
   const isStreamingPhase = phase === 'streaming' || phase === 'open';
-  const { connected, claimEvents } = useSignalR(set?.id, isStreamingPhase);
+  const { connected, claimEvents, claimUpdates } = useSignalR(token, isStreamingPhase);
 
+  // ClaimRegistered — adiciona claim único sem duplicar
   useEffect(() => {
     if (!claimEvents.length || !set) return;
     setSet((prev) => {
@@ -122,6 +108,25 @@ export default function SetPage() {
       return { ...prev, photocards: updated };
     });
   }, [claimEvents]);
+
+  // ClaimUpdated — substitui lista completa com posições corretas
+  useEffect(() => {
+    if (!claimUpdates || !set) return;
+    setSet((prev) => {
+      if (!prev) return prev;
+      const updated = (prev.photocards || []).map((pc) => {
+        const fullList = claimUpdates.filter((c) => c.photocardId === pc.id);
+        if (!fullList.length) return pc;
+        const sorted = [...fullList].sort((a, b) => {
+          if (a.queuePosition != null && b.queuePosition != null)
+            return a.queuePosition - b.queuePosition;
+          return new Date(a.claimedAt) - new Date(b.claimedAt);
+        });
+        return { ...pc, claims: sorted };
+      });
+      return { ...prev, photocards: updated };
+    });
+  }, [claimUpdates]);
 
   const fetchSet = useCallback(async () => {
     try {
@@ -197,6 +202,16 @@ export default function SetPage() {
     }
   };
 
+  const handleOpenRank = async (pc) => {
+    try {
+      const claims = await claimsApi.getByPhotocard(pc.id);
+      setRankModal({ ...pc, claims: claims || [] });
+    } catch {
+      // fallback: abre com dados que já tem
+      setRankModal(pc);
+    }
+  };
+
   const spawnHearts = (x, y) => {
     ['💜', '🌸', '✨', '💗'].forEach((emoji, i) => {
       setTimeout(() => {
@@ -204,7 +219,7 @@ export default function SetPage() {
         el.className = 'float-heart';
         el.textContent = emoji;
         el.style.left = `${x - 12 + Math.random() * 24}px`;
-        el.style.top = `${y - 12}px`;
+        el.style.top  = `${y - 12}px`;
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 1100);
       }, i * 100);
@@ -369,10 +384,10 @@ export default function SetPage() {
     </main>
   );
 
-  const theme     = set.theme || {};
-  const bgColor   = set.backgroundColor || null;
+  const theme    = set.theme || {};
+  const bgColor  = set.backgroundColor || null;
   const fontColor = set.fontColor || null;
-  const fontCss   = set.fontStyle ? FONT_MAP[set.fontStyle] || `'${set.fontStyle}', sans-serif` : null;
+  const fontCss  = set.fontStyle ? FONT_MAP[set.fontStyle] || `'${set.fontStyle}', sans-serif` : null;
 
   const gon        = set.gon || {};
   const gonName    = gon.username    || set.gomUsername || set.ownerUsername || 'GOM';
@@ -387,13 +402,13 @@ export default function SetPage() {
   };
   const sm = statusMeta[set.status] || { label: set.status, cls: 'badge-gray' };
 
-  const canAddMember  = isGom && set.status === 'Draft';
-  const canEditMember = isGom && (set.status === 'Draft' || set.status === 'Published') && !!(set.photocards || []).length;
-
   const isOwnerGom = isGom && (
     (user?.id && gon.id && user.id === gon.id) ||
     (!user?.id && user?.username && gon.username && user.username === gon.username)
   );
+
+  const canAddMember  = isOwnerGom && set.status === 'Draft';
+  const canEditMember = isOwnerGom && (set.status === 'Draft' || set.status === 'Published') && !!(set.photocards || []).length;
 
   return (
     <main className={styles.page}>
@@ -404,11 +419,11 @@ export default function SetPage() {
 
           {/* LEFT COLUMN */}
           <div className={styles.leftCol}>
-
             <TimerBanner
               phase={phase}
               timeLeft={timeLeft}
               claimOpensAt={set.claimOpensAt}
+              openedAt={openedAt}
               apiStatus={set.status}
             />
 
@@ -482,25 +497,18 @@ export default function SetPage() {
             </div>
 
             {/* GOM control bar */}
-            {isGom && (
+            {isOwnerGom && (
               <div className={`card ${styles.gomBar}`}>
                 <span style={{ fontWeight: 800, color: 'var(--ink-soft)', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Crown size={14} strokeWidth={2} style={{ color: 'var(--rose-dark)' }} />
                   Painel GOM
                 </span>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-
-                  {/* Editar set — só em Draft */}
                   {set.status === 'Draft' && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setEditSetModal(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5 }}
-                    >
+                    <button className="btn btn-secondary btn-sm" onClick={() => setEditSetModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Pencil size={13} strokeWidth={2} /> Editar set
                     </button>
                   )}
-
                   {set.status === 'Draft' && !!(set.photocards || []).length && (
                     <button className="btn btn-primary btn-sm" onClick={handlePublish} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Megaphone size={13} strokeWidth={2} /> Publicar
@@ -634,7 +642,7 @@ export default function SetPage() {
                       isGom={isGom}
                       isOwnerGom={isOwnerGom}
                       onClaim={(e) => handleClaim(e, pc.id)}
-                      onOpenRank={() => setRankModal(pc)}
+                      onOpenRank={() => handleOpenRank(pc)}
                     />
                   )
                 ))
@@ -690,7 +698,6 @@ export default function SetPage() {
         />
       )}
 
-      {/* Modal de editar set — só aparece em Draft */}
       {editSetModal && (
         <EditSetModal
           set={set}
@@ -717,10 +724,14 @@ export default function SetPage() {
 }
 
 /* ── Timer Banner ── */
-function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
+function TimerBanner({ phase, timeLeft, claimOpensAt, openedAt, apiStatus }) {
   const date = claimOpensAt ? new Date(claimOpensAt) : null;
   const formatted = date
     ? date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : '';
+
+  const openedAtFormatted = openedAt
+    ? openedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     : '';
 
   if (phase === 'closed') return (
@@ -734,15 +745,9 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
   if (phase === 'open') return (
     <div className={`${styles.timerBanner} ${styles.timerLive}`}>
       <span className={styles.livePulse} />
-      <span className={styles.timerValue}>
-        {apiStatus === 'Open' && timeLeft && !timeLeft.startsWith('+')
-          ? `${timeLeft} adiantado`
-          : timeLeft ? `+${timeLeft.replace(/^\+/, '')}` : 'Aberto!'
-        }
-      </span>
       <span className={styles.timerLabel} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <Zap size={13} strokeWidth={2.5} />
-        claim aberto!
+        Claim aberto{openedAtFormatted ? ` às ${openedAtFormatted}` : '!'}
       </span>
     </div>
   );
@@ -767,12 +772,12 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, apiStatus }) {
 
 /* ── Member Row (modo normal) ── */
 function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, isOwnerGom, onClaim, onOpenRank }) {
-  const canClaim    = (phase === 'open') && !claimed && !isOwnerGom;
-  const blurred     = !isGom && (phase === 'waiting' || phase === 'streaming');
-  const isClosed    = phase === 'closed';
-  const claims      = pc.claims || [];
-  const claimCount  = claims.length;
-  const myPos       = claims.findIndex((c) =>
+  const canClaim     = (phase === 'open') && !claimed && !isOwnerGom;
+  const blurred      = !isGom && (phase === 'waiting' || phase === 'streaming');
+  const isClosed     = phase === 'closed';
+  const claims       = pc.claims || [];
+  const claimCount   = claims.length;
+  const myPos        = claims.findIndex((c) =>
     (userId && c.userId === userId) ||
     (!userId && userUsername && c.username === userUsername)
   );
@@ -820,10 +825,10 @@ function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, 
       <button
         className={`
           ${styles.claimCircle}
-          ${claimed      ? styles.claimCircleDone   : ''}
-          ${canClaim     ? styles.claimCircleActive  : ''}
-          ${isClosed     ? styles.claimCircleClosed  : ''}
-          ${isGomBlocked ? styles.claimCircleClosed  : ''}
+          ${claimed      ? styles.claimCircleDone  : ''}
+          ${canClaim     ? styles.claimCircleActive : ''}
+          ${isClosed     ? styles.claimCircleClosed : ''}
+          ${isGomBlocked ? styles.claimCircleClosed : ''}
         `}
         onClick={(e) => { e.stopPropagation(); if (canClaim) onClaim(e); }}
         disabled={!canClaim || claiming}

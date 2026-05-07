@@ -400,7 +400,7 @@ export default function ImageCropModal({
           <button className="btn btn-primary" onClick={handleConfirm} disabled={!crop || rendering} style={{ flex: 2 }}>
             {rendering
               ? <span className="spinner" style={{ width: 18, height: 18 }} />
-              : '✂️ Confirmar recorte'
+              : 'Confirmar recorte'
             }
           </button>
         </div>
