@@ -198,7 +198,7 @@ export default function Home() {
       {!user && (
         <section className={styles.ctaSection}>
           <div className="page-container" style={{ textAlign: 'center' }}>
-            <h2>Pronta pra dar claim?</h2>
+            <h2>Pronto pra dar claim?</h2>
             <p style={{ color: 'var(--gray)', marginTop: 10, marginBottom: 32, fontSize: '0.95rem' }}>
               Crie sua conta grátis e nunca mais perca um photocard.
             </p>
