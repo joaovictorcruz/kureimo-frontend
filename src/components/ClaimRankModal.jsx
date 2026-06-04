@@ -35,7 +35,7 @@ export default function ClaimRankModal({ photocard, userId, connection, onClose 
   }, [connection, photocard.id]);
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay">
       <div className={`card ${styles.modal}`}>
 
         {/* Header */}

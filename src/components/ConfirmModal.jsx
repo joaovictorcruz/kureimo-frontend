@@ -20,7 +20,7 @@ export default function ConfirmModal({
   onCancel,
 }) {
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+    <div className="modal-overlay">
       <div className={`card ${styles.modal}`}>
         {/* Header */}
         <div className={styles.header}>

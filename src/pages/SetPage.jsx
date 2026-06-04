@@ -546,8 +546,8 @@ export default function SetPage() {
                     <div className="avatar" style={{ width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0 }}>{gonInitial}</div>
                   )}
                   <div>
-                    <div className={styles.gomName}>{gonName}</div>
-                    <div className={styles.gomSub}>Group Order Manager</div>
+                    <div className={styles.gomName} style={fontColor ? { color: fontColor } : {}}>{gonName}</div>
+                    <div className={styles.gomSub} style={fontColor ? { color: fontColor, opacity: 0.75 } : {}}>Group Order Manager</div>
                   </div>
                 </div>
 
@@ -556,11 +556,9 @@ export default function SetPage() {
                 </h2>
 
                 {set.description && (
-                  <ul className={styles.descList} style={fontColor ? { color: fontColor, opacity: 0.85 } : {}}>
-                    {set.description.split('\n').filter(Boolean).map((line, i) => (
-                      <li key={i}>{line}</li>
-                    ))}
-                  </ul>
+                  <p className={styles.descText} style={{ ...(fontColor ? { color: fontColor, opacity: 0.85 } : {}), whiteSpace: 'pre-line', margin: 0 }}>
+                    {set.description}
+                  </p>
                 )}
               </div>
             </div>

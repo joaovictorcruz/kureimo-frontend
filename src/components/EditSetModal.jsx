@@ -107,7 +107,7 @@ function FontPickerModal({ value, onChange, onClose, previewText }) {
     f.label.toLowerCase().includes(search.toLowerCase()) && (category === 'Todos' || f.category === category)
   );
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()} style={{ zIndex: 1100 }}>
+    <div className="modal-overlay" style={{ zIndex: 1100 }}>
       <div className="card" style={{ width: '100%', maxWidth: 540, maxHeight: '78vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', animation: 'scale-in 0.22s ease' }}>
         <div style={{ padding: '20px 24px 14px', borderBottom: '1.5px solid var(--card-border)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -290,7 +290,7 @@ export default function EditSetModal({ set, onClose, onSaved }) {
 
   return (
     <>
-      <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-overlay">
         <div className="card modal" style={{ maxWidth: 520, overflowY: 'auto' }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
