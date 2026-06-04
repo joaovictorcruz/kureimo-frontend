@@ -4,9 +4,11 @@ import { SIGNALR_URL, authApi } from '../api/client';
 
 export function useSignalR(accessToken, isActive) {
   const connectionRef = useRef(null);
+  const [connection, setConnection] = useState(null);
   const [connected, setConnected] = useState(false);
-  const [claimEvents, setClaimEvents] = useState([]);   // ClaimRegistered — claim único
+  const [claimEvent, setClaimEvent] = useState(null);   // ClaimRegistered — último evento
   const [claimUpdates, setClaimUpdates] = useState(null); // ClaimUpdated — lista completa
+  const [claimRemoval, setClaimRemoval] = useState(null); // ClaimRemoved — último evento
 
   const connect = useCallback(async () => {
     if (connectionRef.current) return;
@@ -21,23 +23,21 @@ export function useSignalR(accessToken, isActive) {
     }
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(SIGNALR_URL, {
-        accessTokenFactory: () => token,
-      })
+      .withUrl(SIGNALR_URL, { accessTokenFactory: () => token })
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Warning)
       .build();
 
     connection.on('ClaimRegistered', (claim) => {
-      setClaimEvents((prev) => {
-        const exists = prev.some((c) => c.id === claim.id);
-        if (exists) return prev;
-        return [claim, ...prev];
-      });
+      setClaimEvent(claim);
     });
 
     connection.on('ClaimUpdated', (claims) => {
-      setClaimUpdates(claims); // substitui lista completa
+      setClaimUpdates(claims);
+    });
+
+    connection.on('ClaimRemoved', ({ photocardId, userId }) => {
+      setClaimRemoval({ photocardId, userId });
     });
 
     try {
@@ -47,6 +47,7 @@ export function useSignalR(accessToken, isActive) {
       }
       setConnected(true);
       connectionRef.current = connection;
+      setConnection(connection);
     } catch (err) {
       console.error('SignalR connection failed', err);
     }
@@ -57,6 +58,7 @@ export function useSignalR(accessToken, isActive) {
       await connectionRef.current.stop();
       connectionRef.current = null;
       setConnected(false);
+      setConnection(null);
     }
   }, []);
 
@@ -69,5 +71,5 @@ export function useSignalR(accessToken, isActive) {
     return () => { disconnect(); };
   }, [isActive, accessToken]);
 
-  return { connected, claimEvents, claimUpdates };
+   return { connected, claimEvent, claimUpdates, claimRemoval, connectionRef, connection };
 }

@@ -209,13 +209,16 @@ export default function Home() {
         </section>
       )}
 
-      {/* ── Footer ── */}
       <footer className={styles.footer}>
-        <div className="page-container" style={{ textAlign: 'center' }}>
-          <Logo size={28} showText />
-          <p style={{ color: 'var(--gray)', fontSize: '0.78rem', marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            feito com <Heart size={12} fill="currentColor" color="var(--rose)" /> para a comunidade kpop do Brasil
-          </p>
+        <div className="page-container">
+          <div className={styles.footerInner}>
+            <div className={styles.footerLogo}>
+              <Logo size={28} showText />
+            </div>
+            <p style={{ color: 'var(--gray)', fontSize: '0.78rem', margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+              feito com <Heart size={12} fill="currentColor" color="var(--rose)" /> para a comunidade kpop do Brasil
+            </p>
+          </div>
         </div>
       </footer>
 

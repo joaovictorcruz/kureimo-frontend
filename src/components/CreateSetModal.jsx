@@ -341,8 +341,8 @@ export default function CreateSetModal({ onClose, onCreated }) {
 
               <div className="field">
                 <label>Descrição / detalhes</label>
-                <textarea className="input" placeholder={"Coloque aqui as informações que considera\nnecessária sobre o set."}
-                  value={form.description} onChange={(e) => setF('description', e.target.value)}
+                <textarea className="input" placeholder={"Insira suas observações e comentários que você considera\nnecessários sobre o set."}
+                  value={form.description} onChange={(e) => setF('description', e.target.value)}  
                   rows={4} style={{ resize: 'vertical' }} />
               </div>
 

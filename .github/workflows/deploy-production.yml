@@ -1,0 +1,38 @@
+name: Deploy Frontend Production
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: production
+  cancel-in-progress: true
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker Build
+        run: |
+          docker build -t kureimo-frontend .
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Redeploy Frontend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway redeploy \
+            --service 60f6fa28-d79d-4de5-9f9a-1974d6517f0c \
+            --environment 212d94e4-2114-4dc8-9237-ccd356677dd3 \
+            --project a5934b9c-f3e9-483c-bfff-cd61822f49e9 \
+            --yes

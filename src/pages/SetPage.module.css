@@ -242,6 +242,21 @@
   line-height: 1.45;
 }
 
+.unclaimHint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(242, 134, 149, 0.06);
+  border: 1px solid rgba(242, 134, 149, 0.25);
+  margin-bottom: 12px;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
 /* Hidden placeholders (blurred) */
 .memberNameHidden {
   display: block;
@@ -501,6 +516,19 @@
   border-color: transparent;
   color: white;
   font-weight: 900;
+}
+
+.claimCircleUnclaim {
+  background: linear-gradient(135deg, var(--rose), var(--blush));
+  border-color: transparent;
+  color: white;
+  cursor: pointer;
+}
+
+.claimCircleUnclaim:hover:not(:disabled) {
+  filter: brightness(0.9);
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(242, 134, 149, 0.45);
 }
 
 .claimCircleClosed {

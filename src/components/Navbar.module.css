@@ -17,6 +17,11 @@
   justify-content: space-between;
 }
 
+.logoSize {
+  --logo-size: 46px;
+}
+
+
 .logoLink { text-decoration: none; }
 
 .actions {
@@ -101,3 +106,9 @@
 
 .dropdownDanger { color: #c0392b; }
 .dropdownDanger:hover { background: rgba(192,57,43,0.08); }
+
+@media (max-width: 768px) {
+  .logoSize {
+    --logo-size: 36px;
+  }
+}

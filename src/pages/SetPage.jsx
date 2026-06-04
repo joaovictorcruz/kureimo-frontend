@@ -14,12 +14,13 @@ import styles from './SetPage.module.css';
 import {
   Lock, Radio, Clock, Zap, Image as ImageIcon, Megaphone, XCircle,
   Link as LinkIcon, Plus, Pencil, Check, GripVertical, AlertTriangle,
-  CheckCircle2, Loader2, Heart, Crown, X,
+  CheckCircle2, Loader2, Heart, HeartCrack, Timer, Crown, X,
 } from 'lucide-react';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const ALLOWED_IMAGE_EXTS  = '.jpg,.jpeg,.png,.webp';
-const MAX_IMAGE_SIZE      = 5 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const UNCLAIM_WINDOW_MS = 6 * 60 * 1000; // 5 minutos
 
 const FONT_MAP = {
   'Nunito':             "'Nunito', sans-serif",
@@ -59,6 +60,13 @@ function addSessionClaimed(token, photocardId) {
   } catch { /* sessionStorage indisponivel */ }
 }
 
+function removeSessionClaimed(token, photocardId) {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(sessionKey(token)) || '[]');
+    sessionStorage.setItem(sessionKey(token), JSON.stringify(stored.filter((id) => id !== photocardId)));
+  } catch { /* sessionStorage indisponivel */ }
+}
+
 export default function SetPage() {
   const { token } = useParams();
   const { user, isGom } = useAuth();
@@ -78,6 +86,7 @@ export default function SetPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [savingPc, setSavingPc]   = useState(false);
   const [reordering, setReordering] = useState(false);
+  const [claimTimes, setClaimTimes] = useState({});
 
   const dragIndexRef = useRef(null);
   const [dragOver, setDragOver] = useState(null);
@@ -88,26 +97,25 @@ export default function SetPage() {
 
   const { timeLeft, phase, openedAt } = useCountdown(set?.claimOpensAt, set?.status);
   const isStreamingPhase = phase === 'streaming' || phase === 'open';
-  const { connected, claimEvents, claimUpdates } = useSignalR(token, isStreamingPhase);
+  const { connected, claimEvent, claimUpdates, claimRemoval, connectionRef, connection } = useSignalR(token, isStreamingPhase);
 
   // ClaimRegistered — adiciona claim único sem duplicar
   useEffect(() => {
-    if (!claimEvents.length || !set) return;
+    if (!claimEvent || !set) return;
     setSet((prev) => {
       if (!prev) return prev;
       const updated = (prev.photocards || []).map((pc) => {
-        const relevant = claimEvents.filter((c) => c.photocardId === pc.id);
-        if (!relevant.length) return pc;
-        const merged = [...(pc.claims || [])];
-        relevant.forEach((ev) => {
-          if (!merged.find((c) => c.id === ev.id)) merged.push(ev);
-        });
-        merged.sort((a, b) => new Date(a.claimedAt) - new Date(b.claimedAt));
+        if (pc.id !== claimEvent.photocardId) return pc;
+        const existing = pc.claims || [];
+        if (existing.find((c) => c.id === claimEvent.id)) return pc;
+        const merged = [...existing, claimEvent].sort(
+          (a, b) => new Date(a.claimedAt) - new Date(b.claimedAt)
+        );
         return { ...pc, claims: merged };
       });
       return { ...prev, photocards: updated };
     });
-  }, [claimEvents]);
+  }, [claimEvent]);
 
   // ClaimUpdated — substitui lista completa com posições corretas
   useEffect(() => {
@@ -128,6 +136,21 @@ export default function SetPage() {
     });
   }, [claimUpdates]);
 
+  // ClaimRemoved — remove claim da lista local em tempo real
+  useEffect(() => {
+    if (!claimRemoval || !set) return;
+    setSet((prev) => {
+      if (!prev) return prev;
+      const updated = (prev.photocards || []).map((pc) => {
+        if (pc.id !== claimRemoval.photocardId) return pc;
+        return {
+          ...pc,
+          claims: (pc.claims || []).filter((c) => c.userId !== claimRemoval.userId),
+        };
+      });
+      return { ...prev, photocards: updated };
+    });
+  }, [claimRemoval]);
   const fetchSet = useCallback(async () => {
     try {
       const data = await setsApi.getByToken(token);
@@ -158,6 +181,18 @@ export default function SetPage() {
         );
         const fromSession = getSessionClaimed(token);
         setClaimedIds(new Set([...fromApi, ...fromSession]));
+
+        const times = {};
+        enriched.forEach((pc) => {
+          const myClaim = (pc.claims || []).find((c) =>
+            (user.id && c.userId === user.id) ||
+            (!user.id && c.username && c.username === user.username)
+          );
+          if (myClaim?.claimedAt) {
+            times[pc.id] = new Date(myClaim.claimedAt).getTime();
+          }
+        });
+        setClaimTimes(times);
       }
     } catch {
       toast.error('Set não encontrado ou sem acesso');
@@ -180,14 +215,16 @@ export default function SetPage() {
       const claim = await claimsApi.claim(photocardId);
       setClaimedIds((p) => new Set([...p, photocardId]));
       addSessionClaimed(token, photocardId);
+      setClaimTimes((p) => ({ ...p, [photocardId]: Date.now() }));
       setSet((prev) => {
         if (!prev) return prev;
         const pcs = (prev.photocards || []).map((pc) => {
           if (pc.id !== photocardId) return pc;
-          const claims = [...(pc.claims || []), claim].sort(
-            (a, b) => new Date(a.claimedAt) - new Date(b.claimedAt)
-          );
-          return { ...pc, claims };
+          const existing = pc.claims || [];
+          const merged = existing.find((c) => c.id === claim.id)
+            ? existing
+            : [...existing, claim];
+          return { ...pc, claims: merged.sort((a, b) => new Date(a.claimedAt) - new Date(b.claimedAt)) };
         });
         return { ...prev, photocards: pcs };
       });
@@ -197,6 +234,38 @@ export default function SetPage() {
       if (err?.status === 409) toast.error('Você já deu claim nesse photocard!');
       else if (err?.status === 422) toast.error('Claim fechado ou inválido.');
       else toast.error('Erro ao dar claim. Tenta de novo!');
+    } finally {
+      setClaimingId(null);
+    }
+  };
+
+  const handleUnclaim = async (e, photocardId) => {
+    e.stopPropagation();
+    setClaimingId(photocardId);
+    try {
+      await claimsApi.unclaim(photocardId);
+      setClaimedIds((p) => { const n = new Set(p); n.delete(photocardId); return n; });
+      setClaimTimes((p) => { const n = { ...p }; delete n[photocardId]; return n; });
+      removeSessionClaimed(token, photocardId);
+      setSet((prev) => {
+        if (!prev) return prev;
+        const pcs = (prev.photocards || []).map((pc) => {
+          if (pc.id !== photocardId) return pc;
+          return {
+            ...pc,
+            claims: (pc.claims || []).filter((c) =>
+              !(user?.id && c.userId === user.id) &&
+              !(!user?.id && c.username === user?.username)
+            ),
+          };
+        });
+        return { ...prev, photocards: pcs };
+      });
+      toast.success('Claim removido!');
+    } catch (err) {
+      if (err?.status === 403) toast.error('Janela de 5 minutos expirou. Entre em contato com o GOM.');
+      else if (err?.status === 404) toast.error('Claim não encontrado.');
+      else toast.error('Erro ao remover claim. Tenta de novo!');
     } finally {
       setClaimingId(null);
     }
@@ -537,6 +606,16 @@ export default function SetPage() {
 
           {/* RIGHT COLUMN */}
           <div className={styles.rightCol}>
+            {phase === 'open' && !isOwnerGom && (
+              <div className={styles.unclaimHint} style={{ padding: '8px 12px', marginBottom: 12 }}>
+                <Timer size={13} strokeWidth={2} style={{ flexShrink: 0}} />
+                <span>
+                  Caso tenha dado claim por engano ou acidentalmente, você tem até <strong>5 minutos</strong> após ter dado claim para desfazer essa ação.
+                  Após esse período, entre em contato com o GOM do set.
+                </span>
+              </div>
+            )}
+
             <div className={styles.memberListHeader}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className={styles.memberListTitle}>Membros</span>
@@ -641,7 +720,9 @@ export default function SetPage() {
                       userUsername={user?.username}
                       isGom={isGom}
                       isOwnerGom={isOwnerGom}
+                      claimedAt={claimTimes[pc.id] ?? null}
                       onClaim={(e) => handleClaim(e, pc.id)}
+                      onUnclaim={(e) => handleUnclaim(e, pc.id)}
                       onOpenRank={() => handleOpenRank(pc)}
                     />
                   )
@@ -679,6 +760,7 @@ export default function SetPage() {
         <ClaimRankModal
           photocard={rankModal}
           userId={user?.id}
+          connection={connection}
           onClose={() => setRankModal(null)}
         />
       )}
@@ -731,7 +813,7 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, openedAt, apiStatus }) {
     : '';
 
   const openedAtFormatted = openedAt
-    ? openedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    ? openedAt.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
     : '';
 
   if (phase === 'closed') return (
@@ -771,13 +853,24 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, openedAt, apiStatus }) {
 }
 
 /* ── Member Row (modo normal) ── */
-function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, isOwnerGom, onClaim, onOpenRank }) {
-  const canClaim     = (phase === 'open') && !claimed && !isOwnerGom;
-  const blurred      = !isGom && (phase === 'waiting' || phase === 'streaming');
-  const isClosed     = phase === 'closed';
-  const claims       = pc.claims || [];
-  const claimCount   = claims.length;
-  const myPos        = claims.findIndex((c) =>
+function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, isOwnerGom, claimedAt, onClaim, onUnclaim, onOpenRank }) {
+  const [, forceUpdate] = useState(0);
+
+  useEffect(() => {
+    if (!claimed || !claimedAt) return;
+    const remaining = UNCLAIM_WINDOW_MS - (Date.now() - claimedAt);
+    if (remaining <= 0) return;
+    const id = setInterval(() => forceUpdate((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [claimed, claimedAt]);
+
+  const canClaim   = (phase === 'open') && !claimed && !isOwnerGom;
+  const canUnclaim = claimed && claimedAt != null && (Date.now() - claimedAt) < UNCLAIM_WINDOW_MS && phase === 'open';
+  const blurred    = !isGom && (phase === 'waiting' || phase === 'streaming');
+  const isClosed   = phase === 'closed';
+  const claims     = pc.claims || [];
+  const claimCount = claims.length;
+  const myPos      = claims.findIndex((c) =>
     (userId && c.userId === userId) ||
     (!userId && userUsername && c.username === userUsername)
   );
@@ -825,17 +918,23 @@ function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, 
       <button
         className={`
           ${styles.claimCircle}
-          ${claimed      ? styles.claimCircleDone  : ''}
-          ${canClaim     ? styles.claimCircleActive : ''}
-          ${isClosed     ? styles.claimCircleClosed : ''}
-          ${isGomBlocked ? styles.claimCircleClosed : ''}
+          ${claimed && !canUnclaim ? styles.claimCircleDone    : ''}
+          ${canUnclaim             ? styles.claimCircleUnclaim : ''}
+          ${canClaim               ? styles.claimCircleActive  : ''}
+          ${isClosed               ? styles.claimCircleClosed  : ''}
+          ${isGomBlocked           ? styles.claimCircleClosed  : ''}
         `}
-        onClick={(e) => { e.stopPropagation(); if (canClaim) onClaim(e); }}
-        disabled={!canClaim || claiming}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (canUnclaim) { onUnclaim(e); return; }
+          if (canClaim)   { onClaim(e);   return; }
+        }}
+        disabled={(!canClaim && !canUnclaim) || claiming}
         title={
           isGomBlocked ? 'GOMs não podem dar claim no próprio set' :
           isClosed     ? 'Claim encerrado' :
-          claimed      ? `Posição #${myPos + 1}` :
+          canUnclaim   ? 'Clique para remover seu claim (janela de 5 min)' :
+          claimed      ? `Posição #${myPos + 1} — janela de unclaim expirada` :
           canClaim     ? 'Dar claim!' :
           'Aguardando...'
         }
@@ -846,6 +945,8 @@ function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, 
           <X size={14} strokeWidth={2.5} style={{ color: 'var(--gray)' }} />
         ) : isClosed ? (
           <Lock size={14} strokeWidth={2} />
+        ) : canUnclaim ? (
+          <HeartCrack size={15} strokeWidth={2} />
         ) : claimed ? (
           <Check size={15} strokeWidth={2.5} />
         ) : (

@@ -116,7 +116,8 @@ export const setsApi = {
 };
 
 export const claimsApi = {
-  claim:          (photocardId) => request('POST', `/claims/${photocardId}`),
+  claim: (photocardId) => request('POST', `/claims/${photocardId}`),
+  unclaim: (photocardId) => request('DELETE', `/claims/${photocardId}`),
   getByPhotocard: (photocardId) => request('GET',  `/claims/photocard/${photocardId}`),
 };
 

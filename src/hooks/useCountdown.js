@@ -10,8 +10,9 @@ export function useCountdown(targetDate, apiStatus) {
     if (apiStatus === 'Open') {
       setPhase('open');
       if (!openedAtRef.current) {
-        openedAtRef.current = new Date();
-        setOpenedAt(openedAtRef.current);
+        const at = targetDate ? new Date(targetDate) : new Date();
+        openedAtRef.current = at;
+        setOpenedAt(at);
       }
       return;
     }
@@ -29,21 +30,20 @@ export function useCountdown(targetDate, apiStatus) {
     const tick = () => {
       const diff = target - Date.now();
 
-      if (apiStatus === 'Draft') {
+       if (apiStatus === 'Draft') {
         setPhase('waiting');
       } else {
         if (diff > TEN_MIN) {
           setPhase('waiting');
         } else if (diff > 0) {
           setPhase('streaming');
-        } else if (diff > -TEN_MIN) {
+        } else {
           setPhase('open');
           if (!openedAtRef.current) {
-            openedAtRef.current = new Date();
-            setOpenedAt(openedAtRef.current);
+            const at = new Date(targetDate);
+            openedAtRef.current = at;
+            setOpenedAt(at);
           }
-        } else {
-          setPhase('closed');
         }
       }
 

@@ -295,3 +295,27 @@
   padding: 40px 0;
   border-top: 1px solid var(--card-border);
 }
+
+.footerInner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+}
+
+.footerLogo {
+  position: absolute;
+  left: 0;
+}
+
+@media (max-width: 768px) {
+  .footerInner {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .footerLogo {
+    position: static;
+  }
+}

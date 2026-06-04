@@ -52,7 +52,7 @@ export default function Navbar() {
       <nav className={styles.nav}>
         <div className={styles.inner}>
           <Link to="/" className={styles.logoLink}>
-            <Logo size={36} showText />
+            <Logo size={window.innerWidth < 768 ? 36 : 46} showText  />
           </Link>
 
           <div className={styles.actions}>
