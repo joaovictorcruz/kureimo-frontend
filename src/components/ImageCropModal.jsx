@@ -273,7 +273,6 @@ export default function ImageCropModal({
     <div
       className="modal-overlay"
       style={{ zIndex: 1100, alignItems: 'center' }}
-      onClick={(e) => e.target === e.currentTarget && onCancel()}
     >
       <div
         className="card"
@@ -292,7 +291,7 @@ export default function ImageCropModal({
         <div style={{ padding: '18px 24px', borderBottom: '1.5px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>
-              ✂️ Recortar imagem
+               Recortar imagem
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: 'var(--gray)' }}>
               Arraste os cantos para redimensionar · Arraste dentro para mover

@@ -26,7 +26,6 @@ export default function SessionExpiredModal({ reason = 'expired', onLogin, onReg
         padding: '20px',
         animation: 'fade-in 0.2s ease',
       }}
-      onClick={(e) => e.target === e.currentTarget && onClose?.()}
     >
       <div
         style={{

@@ -25,7 +25,7 @@ function ForgotPasswordModal({ onClose, onSent }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay">
       <div className="card modal">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <Logo size={32} showText />
@@ -97,7 +97,7 @@ function ResetPasswordModal({ email, onClose, onSuccess }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay">
       <div className="card modal">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <Logo size={32} showText />
@@ -248,7 +248,7 @@ export default function AuthModal({ initialMode = 'login', onClose }) {
   const passwordsMatch = !form.confirmPassword || form.password === form.confirmPassword;
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay">
       <div className="card modal">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <Logo size={32} showText />

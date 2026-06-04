@@ -125,7 +125,7 @@ function FontPickerModal({ value, onChange, onClose, previewText }) {
     return f.label.toLowerCase().includes(search.toLowerCase()) && (category === 'Todos' || f.category === category);
   });
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()} style={{ zIndex: 1100 }}>
+    <div className="modal-overlay" style={{ zIndex: 1100 }}>
       <div className="card" style={{ width: '100%', maxWidth: 540, maxHeight: '78vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', animation: 'scale-in 0.22s ease' }}>
         <div style={{ padding: '20px 24px 14px', borderBottom: '1.5px solid var(--card-border)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -306,7 +306,7 @@ export default function CreateSetModal({ onClose, onCreated }) {
 
   return (
     <>
-      <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-overlay">
         <div className="card modal" style={{ maxWidth: 520, overflowY: 'auto' }}>
 
           {/* Progress */}
@@ -346,25 +346,8 @@ export default function CreateSetModal({ onClose, onCreated }) {
                   rows={4} style={{ resize: 'vertical' }} />
               </div>
 
-              <div className="field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Calendar size={14} strokeWidth={2} />
-                  Claim abre em *
-                </label>
-                <input
-                  className="input"
-                  type="datetime-local"
-                  value={form.claimOpensAt}
-                  onChange={(e) => setF('claimOpensAt', e.target.value)}
-                  style={{ colorScheme: 'light' }}
-                />
-                <span style={{ fontSize: '0.73rem', color: 'var(--gray)' }}>
-                  O stream em tempo real abre automaticamente 10 min antes e depois deste horário.
-                </span>
-              </div>
-
               <button className="btn btn-primary" onClick={() => setStep(2)}
-                disabled={!form.title.trim() || !form.claimOpensAt || !croppedBlob}
+                disabled={!form.title.trim() || !croppedBlob}
                 style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 Próximo: Visual
                 <ChevronRight size={16} strokeWidth={2.5} />
@@ -407,6 +390,23 @@ export default function CreateSetModal({ onClose, onCreated }) {
                   Fonte do título
                 </label>
                 <FontSelector value={fontStyle.value} onChange={(opt) => setFontStyle(opt)} previewText={form.title || 'Título do set'} />
+                </div>
+                
+              <div className="field">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Calendar size={14} strokeWidth={2} />
+                  Claim abre em *
+                </label>
+                <input
+                  className="input"
+                  type="datetime-local"
+                  value={form.claimOpensAt}
+                  onChange={(e) => setF('claimOpensAt', e.target.value)}
+                  style={{ colorScheme: 'light' }}
+                />
+                <span style={{ fontSize: '0.73rem', color: 'var(--gray)' }}>
+                  O stream em tempo real abre automaticamente 10 min antes e depois deste horário.
+                </span>
               </div>
 
               <div style={{ display: 'flex', gap: 10 }}>
