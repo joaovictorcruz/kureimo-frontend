@@ -82,7 +82,7 @@ export default function ClaimRankModal({ photocard, userId, connection, onClose 
                 return (
                   <div
                     key={c.id}
-                    className={`${styles.rankRow} ${isMe ? styles.myRow : ''} claim-pulse`}
+                    className={`${styles.rankRow} ${isMe ? styles.myRow : ''}`}
                     style={{ animationDelay: `${i * 40}ms` }}
                   >
                     <div className={styles.pos}>

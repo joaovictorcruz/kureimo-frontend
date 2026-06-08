@@ -4,7 +4,9 @@ export function useCountdown(targetDate, apiStatus) {
   const [timeLeft, setTimeLeft] = useState(null);
   const [phase, setPhase] = useState('waiting');
   const [openedAt, setOpenedAt] = useState(null);
+  const [closedAt, setClosedAt] = useState(null);
   const openedAtRef = useRef(null); // ref para evitar re-render no tick
+  const closedAtRef = useRef(null);
 
   useEffect(() => {
     if (apiStatus === 'Open') {
@@ -18,9 +20,13 @@ export function useCountdown(targetDate, apiStatus) {
     }
 
     if (apiStatus === 'Closed') {
-      setPhase('closed');
-      return;
-    }
+        setPhase('closed');
+        if (!closedAtRef.current) {
+          closedAtRef.current = new Date();
+          setClosedAt(closedAtRef.current);
+        }
+        return;
+      }
 
     if (!targetDate) return;
 
@@ -62,7 +68,7 @@ export function useCountdown(targetDate, apiStatus) {
     }
   }, [apiStatus, targetDate]);
 
-  return { timeLeft, phase, openedAt };
+  return { timeLeft, phase, openedAt, closedAt };
 }
 
 function formatTime(ms) {
