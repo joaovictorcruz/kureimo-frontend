@@ -14,7 +14,7 @@ import styles from './SetPage.module.css';
 import {
   Lock, Radio, Clock, Zap, Image as ImageIcon, Megaphone, XCircle,
   Link as LinkIcon, Plus, Pencil, Check, GripVertical, AlertTriangle,
-  CheckCircle2, Loader2, Heart, HeartCrack, Timer, Crown, X,
+  CheckCircle2, Loader2, Heart, HeartCrack, Timer, Info, Crown, X,
 } from 'lucide-react';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -95,7 +95,7 @@ export default function SetPage() {
   const [cropSrc, setCropSrc]           = useState(null);
   const [uploadingImg, setUploadingImg] = useState(false);
 
-  const { timeLeft, phase, openedAt } = useCountdown(set?.claimOpensAt, set?.status);
+  const { timeLeft, phase, openedAt, closedAt } = useCountdown(set?.claimOpensAt, set?.status);
   const isStreamingPhase = phase === 'streaming' || phase === 'open';
   const { connected, claimEvent, claimUpdates, claimRemoval, connectionRef, connection } = useSignalR(token, isStreamingPhase);
 
@@ -493,6 +493,7 @@ export default function SetPage() {
               timeLeft={timeLeft}
               claimOpensAt={set.claimOpensAt}
               openedAt={openedAt}
+              closedAt={closedAt}
               apiStatus={set.status}
             />
 
@@ -519,7 +520,7 @@ export default function SetPage() {
                   </span>
                 )}
 
-                {isGom && (
+                {isOwnerGom && set.status === 'Draft' && (
                   <>
                     <button
                       className={styles.changeImgBtn}
@@ -604,9 +605,9 @@ export default function SetPage() {
 
           {/* RIGHT COLUMN */}
           <div className={styles.rightCol}>
-            {phase === 'open' && !isOwnerGom && (
-              <div className={styles.unclaimHint} style={{ padding: '8px 12px', marginBottom: 12 }}>
-                <Timer size={13} strokeWidth={2} style={{ flexShrink: 0}} />
+           {(phase === 'open' || set.status === 'Published') && !isOwnerGom && (
+              <div className={styles.unclaimHint}>
+                <Info size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
                 <span>
                   Caso tenha dado claim por engano ou acidentalmente, você tem até <strong>5 minutos</strong> após ter dado claim para desfazer essa ação.
                   Após esse período, entre em contato com o GOM do set.
@@ -804,13 +805,17 @@ export default function SetPage() {
 }
 
 /* ── Timer Banner ── */
-function TimerBanner({ phase, timeLeft, claimOpensAt, openedAt, apiStatus }) {
+function TimerBanner({ phase, timeLeft, claimOpensAt, openedAt, closedAt, apiStatus }) {
   const date = claimOpensAt ? new Date(claimOpensAt) : null;
   const formatted = date
     ? date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
     : '';
 
-  const openedAtFormatted = openedAt
+  const closedAtFormatted = closedAt
+    ? closedAt.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : '';
+
+  const openedAtFormatted = openedAt  // ← estava faltando isso
     ? openedAt.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
     : '';
 
@@ -818,7 +823,7 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, openedAt, apiStatus }) {
     <div className={`${styles.timerBanner} ${styles.timerClosed}`}>
       <Lock size={15} strokeWidth={2} style={{ flexShrink: 0 }} />
       <span>Claim encerrado</span>
-      {formatted && <span className={styles.timerDate}>· {formatted}</span>}
+      {closedAtFormatted && <span className={styles.timerDate}>· {closedAtFormatted}</span>}
     </div>
   );
 
