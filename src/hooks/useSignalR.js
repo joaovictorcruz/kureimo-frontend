@@ -1,29 +1,20 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as signalR from '@microsoft/signalr';
-import { SIGNALR_URL, authApi } from '../api/client';
+import { SIGNALR_URL, getTokenForSignalR } from '../api/client';
 
 export function useSignalR(accessToken, isActive) {
   const connectionRef = useRef(null);
   const [connection, setConnection] = useState(null);
-  const [connected, setConnected] = useState(false);
-  const [claimEvent, setClaimEvent] = useState(null);   // ClaimRegistered — último evento
-  const [claimUpdates, setClaimUpdates] = useState(null); // ClaimUpdated — lista completa
-  const [claimRemoval, setClaimRemoval] = useState(null); // ClaimRemoved — último evento
+  const [connected, setConnected]   = useState(false);
+  const [claimEvent, setClaimEvent]     = useState(null);
+  const [claimUpdates, setClaimUpdates] = useState(null);
+  const [claimRemoval, setClaimRemoval] = useState(null);
 
   const connect = useCallback(async () => {
     if (connectionRef.current) return;
 
-    let token;
-    try {
-      const data = await authApi.getSignalRToken();
-      token = data.token;
-    } catch (err) {
-      console.error('Falha ao obter token SignalR', err);
-      return;
-    }
-
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(SIGNALR_URL, { accessTokenFactory: () => token })
+      .withUrl(SIGNALR_URL, { accessTokenFactory: getTokenForSignalR })
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Warning)
       .build();
@@ -71,5 +62,5 @@ export function useSignalR(accessToken, isActive) {
     return () => { disconnect(); };
   }, [isActive, accessToken]);
 
-   return { connected, claimEvent, claimUpdates, claimRemoval, connectionRef, connection };
+  return { connected, claimEvent, claimUpdates, claimRemoval, connectionRef, connection };
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { authApi } from '../api/client';
 import Logo from './Logo';
 
 // ─── Modal de "Esqueci minha senha" (step 1: e-mail) ────────────────────────
