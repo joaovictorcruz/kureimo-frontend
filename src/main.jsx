@@ -11,6 +11,12 @@ const config = {
   scopes:    ['openid', 'profile', 'email', 'phone', 'offline_access'],
 };
 
+console.log('Logto config:', {
+  endpoint: import.meta.env.VITE_LOGTO_ENDPOINT,
+  appId: import.meta.env.VITE_LOGTO_APP_ID,
+  resource: import.meta.env.VITE_LOGTO_RESOURCE,
+});
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
