@@ -13,15 +13,13 @@ import {
 } from 'lucide-react';
 
 export default function Navbar() {
-  const { user, logout, isGom, profilePicUrl } = useAuth();
+  const { user, logout, isGom, profilePicUrl, login } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
-  const openLogin    = () => { setAuthMode('login');    setShowAuth(true); setMenuOpen(false); };
-  const openRegister = () => { setAuthMode('register'); setShowAuth(true); setMenuOpen(false); };
   const handleLogout = () => { logout(); navigate('/'); setMenuOpen(false); };
 
   useEffect(() => {
@@ -118,10 +116,9 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <button className="btn btn-ghost btn-sm" onClick={openLogin}>Entrar</button>
-                <button className="btn btn-primary btn-sm" onClick={openRegister}>
-                  Cadastrar
-                </button>
+              <button className="btn btn-primary btn-sm" onClick={login}>
+                Entrar / Cadastrar
+              </button>
               </>
             )}
           </div>

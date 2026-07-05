@@ -1,49 +1,41 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export const SIGNALR_URL = import.meta.env.VITE_SIGNALR_URL;
 
-// Rotas de autenticação não devem disparar session-invalid em 401
-// (credenciais erradas não == sessão expirada)
-const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password'];
+// Função injetada pelo AuthContext para fornecer o access token do Logto
+let getAccessTokenFn = null;
+export function setAccessTokenProvider(fn) {
+  getAccessTokenFn = fn;
+}
 
-function dispatchSessionInvalid(reason) {
-  window.dispatchEvent(
-    new CustomEvent('kureimo:session-invalid', { detail: { reason } })
-  );
+async function getAuthHeader() {
+  if (!getAccessTokenFn) return {};
+  try {
+    const token = await getAccessTokenFn('https://kureimo-api.com');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
 }
 
 const request = async (method, path, body) => {
-  const headers = { 'Content-Type': 'application/json' };
-  const isAuthPath = AUTH_PATHS.includes(path);
+  const authHeader = await getAuthHeader();
+  const headers = { 'Content-Type': 'application/json', ...authHeader };
 
   let res;
   try {
     res = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
-      credentials: 'include',
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    if (!isAuthPath) dispatchSessionInvalid('network');
     throw new Error('Sem conexão com o servidor. Verifique sua internet.');
-  }
-
-  if (res.status === 401) {
-    if (!isAuthPath) {
-      dispatchSessionInvalid('expired');
-    }
-    const errData = await res.json().catch(() => ({}));
-    const message =
-      errData?.error || errData?.detail || errData?.title || errData?.message || 'Credenciais inválidas.';
-    const err = new Error(message);
-    err.status = 401;
-    err.body   = errData;
-    throw err;
   }
 
   if (res.status === 204) return null;
 
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
+
   if (!res.ok) {
     const message =
       data?.error || data?.detail || data?.title || data?.message || 'Erro inesperado.';
@@ -52,30 +44,28 @@ const request = async (method, path, body) => {
     err.body   = data;
     throw err;
   }
+
   return data;
 };
 
 const requestFormData = async (method, path, formData) => {
+  const authHeader = await getAuthHeader();
+
   let res;
   try {
     res = await fetch(`${BASE_URL}${path}`, {
       method,
-      credentials: 'include',
+      headers: authHeader,
       body: formData,
     });
   } catch {
-    dispatchSessionInvalid('network');
     throw new Error('Sem conexão com o servidor. Verifique sua internet.');
-  }
-
-  if (res.status === 401) {
-    dispatchSessionInvalid('expired');
-    throw new Error('Sessão expirada.');
   }
 
   if (res.status === 204) return null;
 
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
+
   if (!res.ok) {
     const message =
       data?.error || data?.detail || data?.title || data?.message || 'Erro inesperado.';
@@ -84,17 +74,17 @@ const requestFormData = async (method, path, formData) => {
     err.body   = data;
     throw err;
   }
+
   return data;
 };
 
-export const authApi = {
-  login:          (dto)             => request('POST', '/auth/login', dto),
-  register:       (dto)             => request('POST', '/auth/register', dto),
-  me:             ()                => request('GET',  '/auth/me'),
-  logout:         ()                => request('POST', '/auth/logout'),
-  forgotPassword: (email)           => request('POST', '/auth/forgot-password', { email }),
-  resetPassword: (token, password) => request('POST', '/auth/reset-password', { token, password }),
-  getSignalRToken: ()                => request('GET',  '/auth/signalr-token'),
+export const usersApi = {
+  me:               ()          => request('GET',  '/users/me'),
+  completeOnboarding: (dto)     => request('POST', '/users/me/complete-onboarding', dto),
+  get:              (id)        => request('GET',  `/users/${id}`),
+  update:           (id, dto)   => request('PUT',  `/users/${id}`, dto),
+  updateProfilePic: (id, fd)    => requestFormData('PUT', `/users/${id}/profile-pic`, fd),
+  delete:           (id)        => request('DELETE', `/users/${id}`),
 };
 
 export const setsApi = {
@@ -116,28 +106,11 @@ export const setsApi = {
 };
 
 export const claimsApi = {
-  claim: (photocardId) => request('POST', `/claims/${photocardId}`),
-  unclaim: (photocardId) => request('DELETE', `/claims/${photocardId}`),
-  getByPhotocard: (photocardId) => request('GET',  `/claims/photocard/${photocardId}`),
+  claim:          (photocardId) => request('POST',   `/claims/${photocardId}`),
+  unclaim:        (photocardId) => request('DELETE', `/claims/${photocardId}`),
+  getByPhotocard: (photocardId) => request('GET',    `/claims/photocard/${photocardId}`),
 };
 
-export const usersApi = {
-  get: (id) =>
-    id ? request('GET', `/users/${id}`) : request('GET', '/users/me'),
-
-  update: (id, dto) =>
-    id ? request('PUT', `/users/${id}`, dto) : request('PUT', '/users/me', dto),
-
-  updatePassword: (id, dto) =>
-    id
-      ? request('PUT', `/users/${id}/password`, dto)
-      : request('PUT', '/users/me/password', dto),
-
-  updateProfilePic: (id, fd) =>
-    id
-      ? requestFormData('PUT', `/users/${id}/profile-pic`, fd)
-      : requestFormData('PUT', '/users/me/profile-pic', fd),
-
-  delete: (id) =>
-    id ? request('DELETE', `/users/${id}`) : request('DELETE', '/users/me'),
-};
+export async function getTokenForSignalR() {
+  return getAccessTokenFn ? await getAccessTokenFn('https://kureimo-api.com') : '';
+}

@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@logto/react": "^4.0.14",
     "@microsoft/signalr": "^8.0.7",
     "lucide-react": "^0.383.0",
     "react": "^18.3.1",

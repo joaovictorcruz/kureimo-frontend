@@ -1,0 +1,86 @@
+.modal {
+  width: 100%;
+  max-width: 420px;
+  padding: 36px;
+  animation: scale-in 0.14s ease;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.steps {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.step {
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  background: var(--gray-light);
+  transition: background 0.2s;
+}
+
+.stepActive {
+  background: var(--rose);
+}
+
+.title {
+  font-size: 1.3rem;
+  margin-bottom: 6px;
+}
+
+.sub {
+  font-size: 0.84rem;
+  color: var(--gray);
+  line-height: 1.5;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.roleCards {
+  display: flex;
+  gap: 12px;
+}
+
+.roleCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 14px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--card-border);
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  text-align: center;
+}
+
+.roleCard:hover {
+  border-color: rgba(242, 134, 149, 0.5);
+}
+
+.roleCardActive {
+  border-color: var(--rose);
+  box-shadow: 0 0 0 3px rgba(242, 134, 149, 0.14);
+}
+
+.roleLabel {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.roleDesc {
+  font-size: 0.76rem;
+  color: var(--gray);
+  line-height: 1.4;
+}
