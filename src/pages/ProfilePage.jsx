@@ -8,11 +8,9 @@ import DeleteAccountModal from '../components/DeleteAccountModal';
 import {
   User,
   Pencil,
-  Lock,
-  Crown,
-  Sparkles,
   Camera,
   AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 
@@ -20,29 +18,20 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp
 const ALLOWED_IMAGE_EXTS  = '.jpg,.jpeg,.png,.webp';
 const MAX_IMAGE_SIZE      = 5 * 1024 * 1024;
 
+const LOGTO_ACCOUNT_URL = 'https://logto-production-6314.up.railway.app/account/security';
+
 export default function ProfilePage() {
-  // profilePicUrl vem do contexto (localStorage + /auth/me) — não precisa de GET separado
   const { user, logout, isGom, profilePicUrl, updateProfilePic } = useAuth();
   const toast    = useToast();
   const navigate = useNavigate();
   const avatarInputRef = useRef(null);
 
-  const [editMode, setEditMode] = useState(false);
-  const [passMode, setPassMode] = useState(false);
-  const [saving, setSaving]     = useState(false);
-
+  const [editMode, setEditMode]               = useState(false);
   const [cropSrc, setCropSrc]                 = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [profile, setProfile]                 = useState({ username: '', email: '', phoneNumber: '' });
 
-  // Formulário de edição — populado com dados do contexto, sem GET extra
-  const [profile, setProfile] = useState({ username: '', email: '', phoneNumber: '' });
-  const [passwords, setPasswords] = useState({
-    currentPassword: '', newPassword: '', confirmPassword: '',
-  });
-
-  // Preenche o form quando o user do contexto estiver pronto
   useEffect(() => {
     if (!user) return;
     setProfile({
@@ -55,7 +44,7 @@ export default function ProfilePage() {
   if (!user) { navigate('/'); return null; }
 
   const initial   = (user.username || '?')[0].toUpperCase();
-  const avatarUrl = profilePicUrl || null; // vem do contexto, sempre atualizado
+  const avatarUrl = profilePicUrl || null;
 
   const handleAvatarFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -82,10 +71,8 @@ export default function ProfilePage() {
     try {
       const formData = new FormData();
       formData.append('file', blob, 'profile-pic.jpg');
-      // user.id pode ser null → usersApi.updateProfilePic usa /users/me como fallback
       await usersApi.updateProfilePic(user.id, formData);
       toast.success('Foto de perfil atualizada!');
-      // Busca a nova URL e atualiza o contexto (reflete no Navbar imediatamente)
       const updated = await usersApi.get(user.id);
       if (updated?.profilePicUrl) updateProfilePic(updated.profilePicUrl);
     } catch (err) {
@@ -98,50 +85,6 @@ export default function ProfilePage() {
   const handleCropCancel = () => {
     URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
-  };
-
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
-    if (!profile.username.trim()) { toast.error('Nome de usuário é obrigatório.'); return; }
-    setSaving(true);
-    try {
-      // user.id pode ser null → usersApi.update usa /users/me como fallback
-      await usersApi.update(user.id, {
-        username:    profile.username,
-        email:       profile.email,
-        phoneNumber: profile.phoneNumber,
-      });
-      toast.success('Perfil atualizado!');
-      setEditMode(false);
-    } catch (err) {
-      toast.error(err?.message || 'Erro ao atualizar perfil.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    if (passwords.newPassword !== passwords.confirmPassword) {
-      toast.error('As senhas novas não coincidem.'); return;
-    }
-    if (passwords.newPassword.length < 6) {
-      toast.error('A nova senha deve ter pelo menos 6 caracteres.'); return;
-    }
-    setSaving(true);
-    try {
-      await usersApi.updatePassword(user.id, {
-        currentPassword: passwords.currentPassword,
-        newPassword:     passwords.newPassword,
-      });
-      toast.success('Senha alterada com sucesso!');
-      setPassMode(false);
-      setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (err) {
-      toast.error(err?.message || 'Senha atual incorreta ou erro ao alterar.');
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleDeleteAccount = async () => {
@@ -184,29 +127,23 @@ export default function ProfilePage() {
                     onChange={handleAvatarFileChange}
                     style={{ display: 'none' }}
                   />
-              </div>
+                </div>
                 <h2 className={styles.profileName}>{user.username}</h2>
                 <p className={styles.profileEmail}>{user.email}</p>
               </div>
 
               <div className={`card ${styles.quickNav}`}>
                 <button
-                  className={`${styles.navItem} ${!editMode && !passMode ? styles.navItemActive : ''}`}
-                  onClick={() => { setEditMode(false); setPassMode(false); }}
+                  className={`${styles.navItem} ${!editMode ? styles.navItemActive : ''}`}
+                  onClick={() => setEditMode(false)}
                 >
                   <User size={15} strokeWidth={2} /> Informações
                 </button>
                 <button
                   className={`${styles.navItem} ${editMode ? styles.navItemActive : ''}`}
-                  onClick={() => { setEditMode(true); setPassMode(false); }}
+                  onClick={() => setEditMode(true)}
                 >
                   <Pencil size={15} strokeWidth={2} /> Editar perfil
-                </button>
-                <button
-                  className={`${styles.navItem} ${passMode ? styles.navItemActive : ''}`}
-                  onClick={() => { setPassMode(true); setEditMode(false); }}
-                >
-                  <Lock size={15} strokeWidth={2} /> Alterar senha
                 </button>
               </div>
             </aside>
@@ -214,8 +151,8 @@ export default function ProfilePage() {
             {/* ── Main content ── */}
             <div className={styles.content}>
 
-              {/* View */}
-              {!editMode && !passMode && (
+              {/* Informações */}
+              {!editMode && (
                 <div className={`card ${styles.section}`}>
                   <div className={styles.sectionHeader}>
                     <h2>Informações da conta</h2>
@@ -225,10 +162,10 @@ export default function ProfilePage() {
                   </div>
                   <hr className="divider" />
                   <div className={styles.infoGrid}>
-                    <InfoRow label="Usuário"      value={`@${user.username}`} />
-                    <InfoRow label="E-mail"        value={user.email} />
-                    <InfoRow label="Tipo de conta" value={isGom ? 'GOM (Group Order Manager)' : 'Usuário padrão'} />
-                    <InfoRow label="Celular"        value={user.phoneNumber || '—'} />
+                    <InfoRow label="Usuário"       value={`@${user.username}`} />
+                    <InfoRow label="E-mail"         value={user.email} />
+                    <InfoRow label="Tipo de conta"  value={isGom ? 'GOM (Group Order Manager)' : 'Collector'} />
+                    <InfoRow label="Celular"         value={user.phoneNumber || '—'} />
                   </div>
                   <div className={styles.dangerZone}>
                     <p className={styles.dangerTitle}>
@@ -236,92 +173,84 @@ export default function ProfilePage() {
                       Zona de perigo
                     </p>
                     <p className={styles.dangerDesc}>Excluir a conta é permanente e remove todos os seus dados.</p>
-                    <button className="btn btn-danger btn-sm" onClick={() => setShowDeleteModal(true)}>Excluir conta</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => setShowDeleteModal(true)}>
+                      Excluir conta
+                    </button>
                   </div>
                 </div>
               )}
 
-              {/* Edit */}
+              {/* Editar perfil */}
               {editMode && (
                 <div className={`card ${styles.section}`}>
                   <div className={styles.sectionHeader}>
                     <h2>Editar perfil</h2>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setEditMode(false)}>Cancelar</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setEditMode(false)}>
+                      Fechar
+                    </button>
                   </div>
                   <hr className="divider" />
-                  <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                     <div className="field">
                       <label>Nome de usuário</label>
-                      <input className="input" value={profile.username}
-                        onChange={(e) => setProfile((p) => ({ ...p, username: e.target.value }))} autoFocus />
+                      <input
+                        className="input"
+                        value={profile.username}
+                        readOnly
+                        style={{ cursor: 'default', opacity: 0.7 }}
+                      />
                     </div>
                     <div className="field">
                       <label>E-mail</label>
-                      <input className="input" type="email" value={profile.email}
-                        onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))} />
+                      <input
+                        className="input"
+                        type="email"
+                        value={profile.email}
+                        readOnly
+                        style={{ cursor: 'default', opacity: 0.7 }}
+                      />
                     </div>
                     <div className="field">
                       <label>Celular</label>
-                      <input className="input" type="tel" value={profile.phoneNumber}
-                        onChange={(e) => setProfile((p) => ({ ...p, phoneNumber: e.target.value }))} />
+                      <input
+                        className="input"
+                        type="tel"
+                        value={profile.phoneNumber}
+                        readOnly
+                        style={{ cursor: 'default', opacity: 0.7 }}
+                      />
                     </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="button" className="btn btn-secondary" onClick={() => setEditMode(false)}>Cancelar</button>
-                      <button type="submit" className="btn btn-primary" disabled={saving}>
-                        {saving ? <span className="spinner" style={{ width: 18, height: 18 }} /> : 'Salvar'}
+
+                    <div style={{
+                      padding: '14px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(242, 134, 149, 0.06)',
+                      border: '1px solid rgba(242, 134, 149, 0.25)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                    }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-soft)' }}>
+                        Precisa alterar seus dados ou senha?
+                      </span>
+                      <span style={{ fontSize: '0.76rem', color: 'var(--gray)', lineHeight: 1.5 }}>
+                        Username, e-mail, telefone e senha são gerenciados pelo nosso sistema de autenticação seguro.
+                      </span>
+                      
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 4, width: 'fit-content' }}
+                        onClick={() => window.open(LOGTO_ACCOUNT_URL, '_blank', 'noopener,noreferrer')}
+                      >
+                        <ExternalLink size={13} strokeWidth={2} />
+                        Gerenciar dados de acesso e senha
                       </button>
                     </div>
-                  </form>
+                  </div>
                 </div>
               )}
 
-              {/* Password */}
-              {passMode && (
-                <div className={`card ${styles.section}`}>
-                  <div className={styles.sectionHeader}>
-                    <h2>Alterar senha</h2>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setPassMode(false)}>Cancelar</button>
-                  </div>
-                  <hr className="divider" />
-                  <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                    <div className="field">
-                      <label>Senha atual</label>
-                      <input className="input" type="password" placeholder="••••••••"
-                        value={passwords.currentPassword}
-                        onChange={(e) => setPasswords((p) => ({ ...p, currentPassword: e.target.value }))}
-                        required />
-                    </div>
-                    <div className="field">
-                      <label>Nova senha</label>
-                      <input className="input" type="password" placeholder="Mínimo 8 caracteres"
-                        value={passwords.newPassword}
-                        onChange={(e) => setPasswords((p) => ({ ...p, newPassword: e.target.value }))}
-                        required />
-                    </div>
-                    <div className="field">
-                      <label>Confirmar nova senha</label>
-                      <input className="input" type="password" placeholder="••••••••"
-                        value={passwords.confirmPassword}
-                        onChange={(e) => setPasswords((p) => ({ ...p, confirmPassword: e.target.value }))}
-                        required />
-                      {passwords.confirmPassword && passwords.newPassword !== passwords.confirmPassword && (
-                        <span style={{ fontSize: '0.78rem', color: '#c0392b', marginTop: 2 }}>
-                          As senhas não coincidem.
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="button" className="btn btn-secondary" onClick={() => setPassMode(false)}>Cancelar</button>
-                      <button type="submit" className="btn btn-primary" disabled={saving}>
-                        {saving
-                          ? <span className="spinner" style={{ width: 18, height: 18 }} />
-                          : <><Lock size={14} strokeWidth={2} /> Alterar senha</>
-                        }
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
             </div>
           </div>
         </div>
