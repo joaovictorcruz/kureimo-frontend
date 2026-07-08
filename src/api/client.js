@@ -82,9 +82,13 @@ export const usersApi = {
   me:               ()          => request('GET',  '/users/me'),
   completeOnboarding: (dto)     => request('POST', '/users/me/complete-onboarding', dto),
   get:              (id)        => request('GET',  `/users/${id}`),
+  getProfile: (id) => request('GET', `/users/${id}/profile`),
   update:           (id, dto)   => request('PUT',  `/users/${id}`, dto),
   updateProfilePic: (id, fd)    => requestFormData('PUT', `/users/${id}/profile-pic`, fd),
   delete:           (id)        => request('DELETE', `/users/${id}`),
+  getReviews:         (id, page = 1, pageSize = 5) =>
+    request('GET', `/users/${id}/reviews?page=${page}&pageSize=${pageSize}`),
+  submitReview:       (id, dto)        => request('POST', `/users/${id}/reviews`, dto),
 };
 
 export const setsApi = {

@@ -4,6 +4,7 @@ import { setsApi, claimsApi } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useCountdown } from '../hooks/useCountdown';
+import { useNavigate } from 'react-router-dom';
 import { useSignalR } from '../hooks/useSignalR';
 import AddPhotocardModal from '../components/AddPhotocardModal';
 import ClaimRankModal from '../components/ClaimRankModal';
@@ -98,6 +99,8 @@ export default function SetPage() {
   const { timeLeft, phase, openedAt, closedAt } = useCountdown(set?.claimOpensAt, set?.status);
   const isStreamingPhase = phase === 'streaming' || phase === 'open';
   const { connected, claimEvent, claimUpdates, claimRemoval, connectionRef, connection } = useSignalR(token, isStreamingPhase);
+
+  const navigate = useNavigate();
 
   // ClaimRegistered — adiciona claim único sem duplicar
   useEffect(() => {
@@ -540,17 +543,22 @@ export default function SetPage() {
               </div>
 
               <div className={styles.setMeta}>
-                <div className={styles.gomRow}>
-                  {gonPicUrl ? (
-                    <img src={gonPicUrl} alt={gonName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; }} />
-                  ) : (
-                    <div className="avatar" style={{ width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0 }}>{gonInitial}</div>
-                  )}
-                  <div>
-                    <div className={styles.gomName} style={fontColor ? { color: fontColor } : {}}>{gonName}</div>
-                    <div className={styles.gomSub} style={fontColor ? { color: fontColor, opacity: 0.75 } : {}}>Group Order Manager</div>
-                  </div>
+                <div
+                className={styles.gomRow}
+                onClick={() => !isOwnerGom && gon.id && navigate(`/gom/${gon.id}`)}
+                style={{ cursor: !isOwnerGom && gon.id ? 'pointer' : 'default' }}
+                title={!isOwnerGom && gon.id ? `Ver perfil de ${gonName}` : undefined}
+              >
+                {gonPicUrl ? (
+                  <img src={gonPicUrl} alt={gonName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; }} />
+                ) : (
+                  <div className="avatar" style={{ width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0 }}>{gonInitial}</div>
+                )}
+                <div>
+                  <div className={styles.gomName} style={fontColor ? { color: fontColor } : {}}>{gonName}</div>
+                  <div className={styles.gomSub} style={fontColor ? { color: fontColor, opacity: 0.75 } : {}}>Group Order Manager</div>
                 </div>
+              </div>
 
                 <h2 className={styles.setTitle} style={{ ...(fontCss ? { fontFamily: fontCss } : {}), ...(fontColor ? { color: fontColor } : {}) }}>
                   {set.title || 'Set de Photocards'}
