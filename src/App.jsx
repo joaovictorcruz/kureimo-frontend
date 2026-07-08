@@ -10,6 +10,7 @@ import Home from './pages/Home';
 import SetPage from './pages/SetPage';
 import Dashboard from './pages/Dashboard';
 import ProfilePage from './pages/ProfilePage';
+import GomProfilePage from './pages/GomProfilePage';
 import './styles/global.css';
 
 const PROTECTED_ROUTES = ['/dashboard', '/perfil'];
@@ -46,6 +47,7 @@ function AppShell() {
         <Route path="/set/:token" element={<SetPage />} />
         <Route path="/dashboard"  element={<Dashboard />} />
         <Route path="/perfil"     element={<ProfilePage />} />
+        <Route path="/gom/:id" element={<GomProfilePage />} />
       </Routes>
 
       {showOnboarding && <OnboardingModal />}
