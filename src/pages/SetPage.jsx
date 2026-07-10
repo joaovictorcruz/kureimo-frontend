@@ -877,7 +877,7 @@ function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, 
 
   const canClaim   = (phase === 'open') && !claimed && !isOwnerGom;
   const canUnclaim = claimed && claimedAt != null && (Date.now() - claimedAt) < UNCLAIM_WINDOW_MS && phase === 'open';
-  const blurred    = !isGom && (phase === 'waiting' || phase === 'streaming');
+  const blurred    = !isOwnerGom && (phase === 'waiting' || phase === 'streaming');
   const isClosed   = phase === 'closed';
   const claims     = pc.claims || [];
   const claimCount = claims.length;
