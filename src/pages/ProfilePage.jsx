@@ -18,7 +18,7 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp
 const ALLOWED_IMAGE_EXTS  = '.jpg,.jpeg,.png,.webp';
 const MAX_IMAGE_SIZE      = 5 * 1024 * 1024;
 
-const LOGTO_ACCOUNT_URL = 'https://logto-production-6314.up.railway.app/account/security';
+const LOGTO_ACCOUNT_URL = 'https://auth.kureimo.com/account/security';
 
 export default function ProfilePage() {
   const { user, logout, isGom, profilePicUrl, updateProfilePic } = useAuth();
