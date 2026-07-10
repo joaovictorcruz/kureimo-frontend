@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import AuthModal from '../components/AuthModal';
 import Logo from '../components/Logo';
 import { Zap, Trophy, Link2, Palette, Heart } from 'lucide-react';
 import styles from './Home.module.css';
+
+const LOGTO_APP_ID = import.meta.env.VITE_LOGTO_APP_ID;
+const LOGTO_ENDPOINT = import.meta.env.VITE_LOGTO_ENDPOINT;
+const LOGTO_REGISTER_URL = `${LOGTO_ENDPOINT}/register?app_id=${LOGTO_APP_ID}`;
+const LOGTO_LOGIN_URL    = `${LOGTO_ENDPOINT}/sign-in?app_id=${LOGTO_APP_ID}`;
 
 const FEATURES = [
   {
@@ -31,13 +35,8 @@ const FEATURES = [
 
 export default function Home() {
   const { user, isGom, loading: authLoading } = useAuth();
-  const [showAuth, setShowAuth] = useState(false);
-  const [authMode, setAuthMode] = useState('register');
   const [accessInput, setAccessInput] = useState('');
   const navigate = useNavigate();
-
-  const openRegister = () => { setAuthMode('register'); setShowAuth(true); };
-  const openLogin    = () => { setAuthMode('login');    setShowAuth(true); };
 
   const handleAccess = (e) => {
     e.preventDefault();
@@ -76,12 +75,12 @@ export default function Home() {
 
             {!authLoading && !user && (
               <div className={styles.heroCtas}>
-                <button className="btn btn-primary btn-lg" onClick={openRegister}>
+                <a href={LOGTO_REGISTER_URL} className="btn btn-primary btn-lg">
                   Criar conta grátis
-                </button>
-                <button className="btn btn-secondary btn-lg" onClick={openLogin}>
+                </a>
+                <a href={LOGTO_LOGIN_URL} className="btn btn-secondary btn-lg">
                   Já tenho conta
-                </button>
+                </a>
               </div>
             )}
 
@@ -202,9 +201,9 @@ export default function Home() {
             <p style={{ color: 'var(--gray)', marginTop: 10, marginBottom: 32, fontSize: '0.95rem' }}>
               Crie sua conta grátis e nunca mais perca um photocard.
             </p>
-            <button className="btn btn-primary btn-lg" onClick={openRegister}>
-              Começar agora
-            </button>
+              <a href={LOGTO_REGISTER_URL} className="btn btn-primary btn-lg">
+                Começar agora
+              </a>
           </div>
         </section>
       )}
@@ -222,7 +221,6 @@ export default function Home() {
         </div>
       </footer>
 
-      {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
     </main>
   );
 }
