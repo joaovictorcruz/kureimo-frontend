@@ -68,6 +68,20 @@ function removeSessionClaimed(token, photocardId) {
   } catch { /* sessionStorage indisponivel */ }
 }
 
+function getContrastBorderColor(hex) {
+  const fallback = 'rgba(59, 32, 40, 0.4)'; // contraste padrão sobre o --card-bg (claro)
+  if (!hex) return fallback;
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  if (full.length !== 6) return fallback;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  if ([r, g, b].some(Number.isNaN)) return fallback;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? 'rgba(59, 32, 40, 0.45)' : 'rgba(255, 255, 255, 0.85)';
+}
+
 export default function SetPage() {
   const { token } = useParams();
   const { user, isGom } = useAuth();
@@ -482,6 +496,9 @@ export default function SetPage() {
   const canAddMember  = isOwnerGom && set.status === 'Draft';
   const canEditMember = isOwnerGom && (set.status === 'Draft' || set.status === 'Published') && !!(set.photocards || []).length;
 
+  const gomClickable   = !isOwnerGom && !!gon.id;
+  const gomBorderColor = getContrastBorderColor(bgColor);
+
   return (
     <main className={styles.page}>
       {theme.bg && <div className={styles.themeBg} style={{ background: theme.bg }} />}
@@ -550,9 +567,25 @@ export default function SetPage() {
                 title={!isOwnerGom && gon.id ? `Ver perfil de ${gonName}` : undefined}
               >
                 {gonPicUrl ? (
-                  <img src={gonPicUrl} alt={gonName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  <img
+                    src={gonPicUrl}
+                    alt={gonName}
+                    style={{
+                      width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0,
+                      ...(gomClickable ? { border: `2px solid ${gomBorderColor}` } : {}),
+                    }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
                 ) : (
-                  <div className="avatar" style={{ width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0 }}>{gonInitial}</div>
+                  <div
+                    className="avatar"
+                    style={{
+                      width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0,
+                      ...(gomClickable ? { border: `2px solid ${gomBorderColor}` } : {}),
+                    }}
+                  >
+                    {gonInitial}
+                  </div>
                 )}
                 <div>
                   <div className={styles.gomName} style={fontColor ? { color: fontColor } : {}}>{gonName}</div>
