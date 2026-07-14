@@ -6,6 +6,7 @@ import AuthModal from './AuthModal';
 import styles from './Navbar.module.css';
 import {
   Package,
+  History,
   User,
   LogOut,
   ChevronDown,
@@ -62,6 +63,10 @@ export default function Navbar() {
                     Meus Sets
                   </Link>
                 )}
+                <Link to="/historico" className={`btn btn-ghost btn-sm ${styles.navLink}`}>
+                  <History size={14} strokeWidth={2.5} />
+                  Histórico
+                </Link>
                 <div className={styles.avatarWrap} ref={menuRef}>
                   <button className={styles.avatarBtn} onClick={() => setMenuOpen((v) => !v)}>
                     <AvatarSmall size={32} fontSize="0.75rem" />
@@ -103,6 +108,10 @@ export default function Navbar() {
                           Meus Sets
                         </Link>
                       )}
+                      <Link to="/historico" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
+                        <History size={15} strokeWidth={2} />
+                        Histórico
+                      </Link>
 
                       <hr className="divider" style={{ margin: '8px 0' }} />
 

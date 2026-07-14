@@ -94,6 +94,7 @@ export const usersApi = {
 export const setsApi = {
   getByToken:        (accessToken)             => request('GET',    `/sets/${accessToken}`),
   getMine:           (page = 1, pageSize = 10) => request('GET',    `/sets/mine?page=${page}&pageSize=${pageSize}`),
+  getClaimed:        (page = 1, pageSize = 10) => request('GET',    `/sets/claimed?page=${page}&pageSize=${pageSize}`),
   create:            (formData)                => requestFormData('POST', '/sets', formData),
   update:            (accessToken, dto)        => request('PUT',    `/sets/${accessToken}`, dto),
   updateImage:       (accessToken, formData)   => requestFormData('PUT', `/sets/${accessToken}/image`, formData),

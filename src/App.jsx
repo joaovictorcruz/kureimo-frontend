@@ -9,11 +9,12 @@ import OnboardingModal from './components/OnboardingModal';
 import Home from './pages/Home';
 import SetPage from './pages/SetPage';
 import Dashboard from './pages/Dashboard';
+import HistoryPage from './pages/HistoryPage';
 import ProfilePage from './pages/ProfilePage';
 import GomProfilePage from './pages/GomProfilePage';
 import './styles/global.css';
 
-const PROTECTED_ROUTES = ['/dashboard', '/perfil'];
+const PROTECTED_ROUTES = ['/dashboard', '/perfil', '/historico'];
 
 // Página de callback do Logto — troca o code por tokens automaticamente
 function CallbackPage() {
@@ -46,6 +47,7 @@ function AppShell() {
         <Route path="/callback"   element={<CallbackPage />} />
         <Route path="/set/:token" element={<SetPage />} />
         <Route path="/dashboard"  element={<Dashboard />} />
+        <Route path="/historico"  element={<HistoryPage />} />
         <Route path="/perfil"     element={<ProfilePage />} />
         <Route path="/gom/:id" element={<GomProfilePage />} />
       </Routes>
