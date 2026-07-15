@@ -19,7 +19,11 @@ const PROTECTED_ROUTES = ['/dashboard', '/perfil', '/historico'];
 // Página de callback do Logto — troca o code por tokens automaticamente
 function CallbackPage() {
   const navigate = useNavigate();
-  const { isLoading } = useHandleSignInCallback(() => navigate('/'));
+  const { isLoading } = useHandleSignInCallback(() => {
+    const returnTo = sessionStorage.getItem('kureimo_return_to');
+    sessionStorage.removeItem('kureimo_return_to');
+    navigate(returnTo || '/');
+  });
   if (isLoading) return <PageLoader />;
   return null;
 }
