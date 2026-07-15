@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from './Logo';
 import AuthModal from './AuthModal';
+import SupportModal from './SupportModal';
 import styles from './Navbar.module.css';
 import {
   Package,
@@ -11,6 +12,7 @@ import {
   LogOut,
   ChevronDown,
   Crown,
+  HelpCircle,
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -18,6 +20,7 @@ export default function Navbar() {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
@@ -115,6 +118,16 @@ export default function Navbar() {
 
                       <hr className="divider" style={{ margin: '8px 0' }} />
 
+                      <button
+                        className={styles.dropdownItem}
+                        onClick={() => { setShowSupport(true); setMenuOpen(false); }}
+                      >
+                        <HelpCircle size={15} strokeWidth={2} />
+                        Ajuda &amp; Suporte
+                      </button>
+
+                      <hr className="divider" style={{ margin: '8px 0' }} />
+
                       <button className={`${styles.dropdownItem} ${styles.dropdownDanger}`} onClick={handleLogout}>
                         <LogOut size={15} strokeWidth={2} />
                         Sair
@@ -136,6 +149,10 @@ export default function Navbar() {
 
       {showAuth && (
         <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />
+      )}
+
+      {showSupport && (
+        <SupportModal onClose={() => setShowSupport(false)} />
       )}
     </>
   );

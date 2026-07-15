@@ -68,6 +68,8 @@ function removeSessionClaimed(token, photocardId) {
   } catch { /* sessionStorage indisponivel */ }
 }
 
+// Retorna uma cor de borda que contrasta com o backgroundColor do set (ou um contraste
+// neutro quando o set não define um background customizado), para sinalizar elementos clicáveis.
 function getContrastBorderColor(hex) {
   const fallback = 'rgba(59, 32, 40, 0.4)'; // contraste padrão sobre o --card-bg (claro)
   if (!hex) return fallback;
@@ -84,7 +86,7 @@ function getContrastBorderColor(hex) {
 
 export default function SetPage() {
   const { token } = useParams();
-  const { user, isGom } = useAuth();
+  const { user, isGom, login } = useAuth();
   const toast = useToast();
 
   const [set, setSet]                 = useState(null);
@@ -223,7 +225,7 @@ export default function SetPage() {
   // ── Claim ──
   const handleClaim = async (e, photocardId) => {
     e.stopPropagation();
-    if (!user) { toast.info('Faça login para dar claim!'); return; }
+    if (!user) { login(`/set/${token}`); return; }
     if (phase !== 'open' && phase !== 'streaming') {
       toast.info('O claim ainda não está aberto!'); return;
     }

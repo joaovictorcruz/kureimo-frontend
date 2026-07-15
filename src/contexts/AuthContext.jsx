@@ -82,7 +82,8 @@ export function AuthProvider({ children }) {
     setProfilePicUrl(pic);
   };
 
-  const login = () => {
+  const login = (returnTo) => {
+    if (returnTo) sessionStorage.setItem('kureimo_return_to', returnTo);
     signIn(`${window.location.origin}/callback`);
   };
 
