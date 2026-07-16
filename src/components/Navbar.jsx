@@ -111,10 +111,6 @@ export default function Navbar() {
                           Meus Sets
                         </Link>
                       )}
-                      <Link to="/historico" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
-                        <History size={15} strokeWidth={2} />
-                        Histórico
-                      </Link>
 
                       <hr className="divider" style={{ margin: '8px 0' }} />
 
