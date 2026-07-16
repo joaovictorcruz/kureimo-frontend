@@ -37,7 +37,7 @@ function StarRating({ value, onChange, readonly = false }) {
 
 export default function GomProfilePage() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading, login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -81,6 +81,9 @@ export default function GomProfilePage() {
   }, [id]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) { login(`/gom/${id}`); return; }
+
     const init = async () => {
       setLoading(true);
       await fetchGom();
@@ -88,7 +91,7 @@ export default function GomProfilePage() {
       setLoading(false);
     };
     init();
-  }, [id]);
+  }, [id, authLoading, user]);
 
   const handleSubmitReview = async () => {
     if (!user) { toast.info('Faça login para avaliar.'); return; }
@@ -111,13 +114,13 @@ export default function GomProfilePage() {
     }
   };
 
-  if (loading) return (
+  if (authLoading || loading) return (
     <main style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
       <Loader2 size={36} strokeWidth={1.5} style={{ color: 'var(--rose)', animation: 'spin 1s linear infinite' }} />
     </main>
   );
 
-  if (!gom) return null;
+  if (!user || !gom) return null;
 
   const initial = (gom.username || '?')[0].toUpperCase();
   const hasRating = gom.reviewCount > 0;
