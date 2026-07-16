@@ -20,12 +20,27 @@ const PROTECTED_ROUTES = ['/dashboard', '/perfil', '/historico'];
 // Página de callback do Logto — troca o code por tokens automaticamente
 function CallbackPage() {
   const navigate = useNavigate();
-  const { isLoading } = useHandleSignInCallback(() => {
+  const { isLoading, error } = useHandleSignInCallback(() => {
     const returnTo = sessionStorage.getItem('kureimo_return_to');
     sessionStorage.removeItem('kureimo_return_to');
     navigate(returnTo || '/');
   });
+
   if (isLoading) return <PageLoader />;
+
+  if (error) {
+    return (
+      <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, textAlign: 'center', padding: '0 24px' }}>
+        <p style={{ color: 'var(--ink-soft)', fontSize: '0.95rem' }}>
+          Não deu pra concluir seu login. Isso pode acontecer se o link foi aberto duas vezes ou expirou.
+        </p>
+        <button className="btn btn-primary" onClick={() => navigate('/')}>
+          Voltar para o início
+        </button>
+      </main>
+    );
+  }
+
   return null;
 }
 
@@ -33,6 +48,7 @@ function AppShell() {
   const { user, loading, showOnboarding } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isCallbackRoute = location.pathname === '/callback';
 
   // Redireciona rotas protegidas para home se não autenticado
   useEffect(() => {
@@ -41,7 +57,7 @@ function AppShell() {
     if (isProtected && !user) navigate('/');
   }, [location.pathname, user, loading]);
 
-  if (loading) return <PageLoader />;
+  if (!isCallbackRoute && loading) return <PageLoader />;
 
   return (
     <>
