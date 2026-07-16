@@ -194,6 +194,23 @@
   gap: 10px;
 }
 
+/* Anel de "clicável": um vão na cor do card + um anel sólido contrastante por cima,
+   no estilo avatar-de-story. Fica claro mesmo quando o backgroundColor do set muda. */
+.gomAvatarClickable {
+  box-shadow:
+    0 0 0 2px var(--card-bg),
+    0 0 0 4px var(--gom-ring-color, rgba(59, 32, 40, 0.8));
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gomAvatarClickable:hover {
+  transform: scale(1.1);
+  box-shadow:
+    0 0 0 2px var(--card-bg),
+    0 0 0 4px var(--gom-ring-color, rgba(59, 32, 40, 0.8)),
+    0 3px 10px rgba(0, 0, 0, 0.18);
+}
+
 .gomName {
   font-weight: 800;
   font-size: 0.88rem;
@@ -516,6 +533,20 @@
 }
 
 .claimCircle:disabled { cursor: default; }
+
+/* Toque suave de "não deu certo" quando um claim otimista precisa reverter —
+   sacode o botão em vez de travar a tela com erro. */
+.claimShake {
+  animation: claim-shake 0.4s ease;
+}
+
+@keyframes claim-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
 
 .claimCircleDone {
   background: linear-gradient(135deg, var(--rose), var(--blush));

@@ -71,7 +71,7 @@ function removeSessionClaimed(token, photocardId) {
 // Retorna uma cor de borda que contrasta com o backgroundColor do set (ou um contraste
 // neutro quando o set não define um background customizado), para sinalizar elementos clicáveis.
 function getContrastBorderColor(hex) {
-  const fallback = 'rgba(59, 32, 40, 0.4)'; // contraste padrão sobre o --card-bg (claro)
+  const fallback = 'rgba(59, 32, 40, 0.8)'; // contraste padrão sobre o --card-bg (claro)
   if (!hex) return fallback;
   const clean = hex.replace('#', '');
   const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
@@ -81,7 +81,7 @@ function getContrastBorderColor(hex) {
   const b = parseInt(full.slice(4, 6), 16);
   if ([r, g, b].some(Number.isNaN)) return fallback;
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.6 ? 'rgba(59, 32, 40, 0.45)' : 'rgba(255, 255, 255, 0.85)';
+  return luminance > 0.6 ? 'rgba(59, 32, 40, 0.8)' : 'rgba(255, 255, 255, 0.92)';
 }
 
 export default function SetPage() {
@@ -93,9 +93,11 @@ export default function SetPage() {
   const [loading, setLoading]         = useState(true);
   const [claimedIds, setClaimedIds]   = useState(new Set());
   const [claimingId, setClaimingId]   = useState(null);
+  const [shakeId, setShakeId]         = useState(null);
   const [rankModal, setRankModal]     = useState(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cancelModal, setCancelModal] = useState(false);
+  const [closeModal, setCloseModal]   = useState(false);
   const [editSetModal, setEditSetModal] = useState(false);
 
   const [editMode, setEditMode]   = useState(false);
@@ -229,32 +231,68 @@ export default function SetPage() {
     if (phase !== 'open' && phase !== 'streaming') {
       toast.info('O claim ainda não está aberto!'); return;
     }
-    setClaimingId(photocardId);
+    if (claimedIds.has(photocardId)) return; // já claimado — evita duplo-clique durante a janela otimista
+
+    // ── Otimista: a UI já reage como se tivesse dado certo, sem spinner ──
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticClaim = {
+      id: optimisticId,
+      userId: user.id,
+      username: user.username,
+      claimedAt: new Date().toISOString(),
+    };
+
+    setClaimedIds((p) => new Set([...p, photocardId]));
+    addSessionClaimed(token, photocardId);
+    setClaimTimes((p) => ({ ...p, [photocardId]: Date.now() }));
+    setSet((prev) => {
+      if (!prev) return prev;
+      const pcs = (prev.photocards || []).map((pc) => {
+        if (pc.id !== photocardId) return pc;
+        return { ...pc, claims: [...(pc.claims || []), optimisticClaim] };
+      });
+      return { ...prev, photocards: pcs };
+    });
+    spawnHearts(e.clientX, e.clientY);
+
+    // ── Chamada real acontece por trás; o rank/contador em tempo real (SignalR)
+    //     continua vindo normalmente pros outros collectors durante esse tempo ──
     try {
       const claim = await claimsApi.claim(photocardId);
-      setClaimedIds((p) => new Set([...p, photocardId]));
-      addSessionClaimed(token, photocardId);
-      setClaimTimes((p) => ({ ...p, [photocardId]: Date.now() }));
+
+      // Reconcilia com o claim real do servidor (id e claimedAt definitivos)
       setSet((prev) => {
         if (!prev) return prev;
         const pcs = (prev.photocards || []).map((pc) => {
           if (pc.id !== photocardId) return pc;
-          const existing = pc.claims || [];
-          const merged = existing.find((c) => c.id === claim.id)
-            ? existing
-            : [...existing, claim];
-          return { ...pc, claims: merged.sort((a, b) => new Date(a.claimedAt) - new Date(b.claimedAt)) };
+          return {
+            ...pc,
+            claims: (pc.claims || []).map((c) => (c.id === optimisticId ? claim : c)),
+          };
         });
         return { ...prev, photocards: pcs };
       });
-      toast.success('Claim feito! Você está na fila!');
-      spawnHearts(e.clientX, e.clientY);
+      setClaimTimes((p) => ({ ...p, [photocardId]: new Date(claim.claimedAt).getTime() }));
     } catch (err) {
+      // ── Rollback: desfaz o otimismo e explica o motivo real do erro ──
+      setClaimedIds((p) => { const n = new Set(p); n.delete(photocardId); return n; });
+      setClaimTimes((p) => { const n = { ...p }; delete n[photocardId]; return n; });
+      removeSessionClaimed(token, photocardId);
+      setSet((prev) => {
+        if (!prev) return prev;
+        const pcs = (prev.photocards || []).map((pc) => {
+          if (pc.id !== photocardId) return pc;
+          return { ...pc, claims: (pc.claims || []).filter((c) => c.id !== optimisticId) };
+        });
+        return { ...prev, photocards: pcs };
+      });
+
+      setShakeId(photocardId);
+      setTimeout(() => setShakeId(null), 450);
+
       if (err?.status === 409) toast.error('Você já deu claim nesse photocard!');
       else if (err?.status === 422) toast.error('Claim fechado ou inválido.');
-      else toast.error('Erro ao dar claim. Tenta de novo!');
-    } finally {
-      setClaimingId(null);
+      else toast.error('Não deu pra confirmar seu claim — tenta de novo!');
     }
   };
 
@@ -337,6 +375,7 @@ export default function SetPage() {
   };
 
   const handleClose = async () => {
+    setCloseModal(false);
     try {
       await setsApi.close(token);
       toast.success('Claim encerrado!');
@@ -572,18 +611,19 @@ export default function SetPage() {
                   <img
                     src={gonPicUrl}
                     alt={gonName}
+                    className={gomClickable ? styles.gomAvatarClickable : ''}
                     style={{
                       width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0,
-                      ...(gomClickable ? { border: `2px solid ${gomBorderColor}` } : {}),
+                      ...(gomClickable ? { '--gom-ring-color': gomBorderColor } : {}),
                     }}
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 ) : (
                   <div
-                    className="avatar"
+                    className={`avatar ${gomClickable ? styles.gomAvatarClickable : ''}`}
                     style={{
                       width: 36, height: 36, fontSize: '0.8rem', flexShrink: 0,
-                      ...(gomClickable ? { border: `2px solid ${gomBorderColor}` } : {}),
+                      ...(gomClickable ? { '--gom-ring-color': gomBorderColor } : {}),
                     }}
                   >
                     {gonInitial}
@@ -631,7 +671,7 @@ export default function SetPage() {
                     </button>
                   )}
                   {set.status === 'Open' && (
-                    <button className="btn btn-danger btn-sm" onClick={handleClose} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <button className="btn btn-danger btn-sm" onClick={() => setCloseModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Lock size={13} strokeWidth={2} /> Fechar claim
                     </button>
                   )}
@@ -758,6 +798,7 @@ export default function SetPage() {
                       phase={phase}
                       claimed={claimedIds.has(pc.id)}
                       claiming={claimingId === pc.id}
+                      shake={shakeId === pc.id}
                       userId={user?.id}
                       userUsername={user?.username}
                       isGom={isGom}
@@ -784,6 +825,17 @@ export default function SetPage() {
           confirmClass="btn-danger"
           onConfirm={handleCancel}
           onCancel={() => setCancelModal(false)}
+        />
+      )}
+
+      {closeModal && (
+        <ConfirmModal
+          title="Fechar claim"
+          message={`Tem certeza que deseja encerrar o claim do set "${set.title}"? Ninguém mais vai poder reivindicar membros depois disso.`}
+          confirmLabel="Sim, fechar claim"
+          confirmClass="btn-danger"
+          onConfirm={handleClose}
+          onCancel={() => setCloseModal(false)}
         />
       )}
 
@@ -899,7 +951,7 @@ function TimerBanner({ phase, timeLeft, claimOpensAt, openedAt, closedAt, apiSta
 }
 
 /* ── Member Row (modo normal) ── */
-function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, isOwnerGom, claimedAt, onClaim, onUnclaim, onOpenRank }) {
+function MemberRow({ pc, phase, claimed, claiming, shake, userId, userUsername, isGom, isOwnerGom, claimedAt, onClaim, onUnclaim, onOpenRank }) {
   const [, forceUpdate] = useState(0);
 
   useEffect(() => {
@@ -969,6 +1021,7 @@ function MemberRow({ pc, phase, claimed, claiming, userId, userUsername, isGom, 
           ${canClaim               ? styles.claimCircleActive  : ''}
           ${isClosed               ? styles.claimCircleClosed  : ''}
           ${isGomBlocked           ? styles.claimCircleClosed  : ''}
+          ${shake                  ? styles.claimShake         : ''}
         `}
         onClick={(e) => {
           e.stopPropagation();

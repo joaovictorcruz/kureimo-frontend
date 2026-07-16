@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import HistoryPage from './pages/HistoryPage';
 import ProfilePage from './pages/ProfilePage';
 import GomProfilePage from './pages/GomProfilePage';
+import PrivacyPage from './pages/PrivacyPage';
 import './styles/global.css';
 
 const PROTECTED_ROUTES = ['/dashboard', '/perfil', '/historico'];
@@ -53,6 +54,7 @@ function AppShell() {
         <Route path="/dashboard"  element={<Dashboard />} />
         <Route path="/historico"  element={<HistoryPage />} />
         <Route path="/perfil"     element={<ProfilePage />} />
+        <Route path="/privacidade" element={<PrivacyPage />} />
         <Route path="/gom/:id" element={<GomProfilePage />} />
       </Routes>
 
