@@ -138,7 +138,7 @@ export default function Navbar() {
               </>
             ) : (
               <>
-              <button className="btn btn-primary btn-sm" onClick={login}>
+              <button className="btn btn-primary btn-sm" onClick={() => login()}>
                 Entrar / Cadastrar
               </button>
               </>

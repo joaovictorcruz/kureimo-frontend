@@ -23,7 +23,8 @@ function CallbackPage() {
   const { isLoading, error } = useHandleSignInCallback(() => {
     const returnTo = sessionStorage.getItem('kureimo_return_to');
     sessionStorage.removeItem('kureimo_return_to');
-    navigate(returnTo || '/');
+    const isValidPath = typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('/callback');
+    navigate(isValidPath ? returnTo : '/');
   });
 
   if (isLoading) return <PageLoader />;

@@ -40,13 +40,6 @@ export default function SupportModal({ onClose }) {
           <Mail size={16} strokeWidth={2} />
           {SUPPORT_EMAIL}
         </a>
-
-        {/* Actions */}
-        <div className={styles.actions}>
-          <button className="btn btn-secondary" onClick={onClose}>
-            Fechar
-          </button>
-        </div>
       </div>
     </div>
   );
