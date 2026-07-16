@@ -111,10 +111,6 @@ export default function Navbar() {
                           Meus Sets
                         </Link>
                       )}
-                      <Link to="/historico" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
-                        <History size={15} strokeWidth={2} />
-                        Histórico
-                      </Link>
 
                       <hr className="divider" style={{ margin: '8px 0' }} />
 
@@ -138,7 +134,7 @@ export default function Navbar() {
               </>
             ) : (
               <>
-              <button className="btn btn-primary btn-sm" onClick={login}>
+              <button className="btn btn-primary btn-sm" onClick={() => login()}>
                 Entrar / Cadastrar
               </button>
               </>
