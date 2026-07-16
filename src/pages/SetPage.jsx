@@ -233,59 +233,34 @@ export default function SetPage() {
     }
     if (claimedIds.has(photocardId)) return; // já claimado — evita duplo-clique durante a janela otimista
 
-    // ── Otimista: a UI já reage como se tivesse dado certo, sem spinner ──
-    const optimisticId = `optimistic-${Date.now()}`;
-    const optimisticClaim = {
-      id: optimisticId,
-      userId: user.id,
-      username: user.username,
-      claimedAt: new Date().toISOString(),
-    };
-
+    // ── Feedback instantâneo: botão e animação reagem na hora, sem esperar a API.
+    //     Não mexe em pc.claims aqui — isso fica só pro dado real do servidor,
+    //     senão duplica com o que já chega em tempo real. ──
     setClaimedIds((p) => new Set([...p, photocardId]));
     addSessionClaimed(token, photocardId);
     setClaimTimes((p) => ({ ...p, [photocardId]: Date.now() }));
-    setSet((prev) => {
-      if (!prev) return prev;
-      const pcs = (prev.photocards || []).map((pc) => {
-        if (pc.id !== photocardId) return pc;
-        return { ...pc, claims: [...(pc.claims || []), optimisticClaim] };
-      });
-      return { ...prev, photocards: pcs };
-    });
     spawnHearts(e.clientX, e.clientY);
 
-    // ── Chamada real acontece por trás; o rank/contador em tempo real (SignalR)
-    //     continua vindo normalmente pros outros collectors durante esse tempo ──
     try {
       const claim = await claimsApi.claim(photocardId);
-
-      // Reconcilia com o claim real do servidor (id e claimedAt definitivos)
       setSet((prev) => {
         if (!prev) return prev;
         const pcs = (prev.photocards || []).map((pc) => {
           if (pc.id !== photocardId) return pc;
-          return {
-            ...pc,
-            claims: (pc.claims || []).map((c) => (c.id === optimisticId ? claim : c)),
-          };
+          const existing = pc.claims || [];
+          const merged = existing.find((c) => c.id === claim.id)
+            ? existing
+            : [...existing, claim];
+          return { ...pc, claims: merged.sort((a, b) => new Date(a.claimedAt) - new Date(b.claimedAt)) };
         });
         return { ...prev, photocards: pcs };
       });
       setClaimTimes((p) => ({ ...p, [photocardId]: new Date(claim.claimedAt).getTime() }));
     } catch (err) {
-      // ── Rollback: desfaz o otimismo e explica o motivo real do erro ──
+      // ── Rollback: desfaz só o feedback otimista (botão/animação) e explica o motivo real do erro ──
       setClaimedIds((p) => { const n = new Set(p); n.delete(photocardId); return n; });
       setClaimTimes((p) => { const n = { ...p }; delete n[photocardId]; return n; });
       removeSessionClaimed(token, photocardId);
-      setSet((prev) => {
-        if (!prev) return prev;
-        const pcs = (prev.photocards || []).map((pc) => {
-          if (pc.id !== photocardId) return pc;
-          return { ...pc, claims: (pc.claims || []).filter((c) => c.id !== optimisticId) };
-        });
-        return { ...prev, photocards: pcs };
-      });
 
       setShakeId(photocardId);
       setTimeout(() => setShakeId(null), 450);
