@@ -15,6 +15,20 @@ import {
   HelpCircle,
 } from 'lucide-react';
 
+// Reage a mudanças reais de viewport (resize, rotação de tela), diferente de
+// um innerWidth checado só uma vez no mount.
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = () => setIsMobile(mq.matches);
+    handler();
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 export default function Navbar() {
   const { user, logout, isGom, profilePicUrl, login } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
@@ -35,6 +49,7 @@ export default function Navbar() {
   }, []);
 
   const initial = user?.username?.[0]?.toUpperCase() || '?';
+  const isMobile = useIsMobile(768);
 
   const AvatarSmall = ({ size = 32, fontSize = '0.75rem' }) => (
     profilePicUrl ? (
@@ -54,30 +69,30 @@ export default function Navbar() {
       <nav className={styles.nav}>
         <div className={styles.inner}>
           <Link to="/" className={styles.logoLink}>
-            <Logo size={window.innerWidth < 768 ? 36 : 46} showText  />
+            <Logo size={isMobile ? 32 : 46} showText />
           </Link>
 
           <div className={styles.actions}>
             {user ? (
               <>
                 {isGom && (
-                  <Link to="/dashboard" className={`btn btn-ghost btn-sm ${styles.navLink}`}>
+                  <Link to="/dashboard" className={`btn btn-ghost btn-sm ${styles.navLink}`} title="Meus Sets">
                     <Package size={14} strokeWidth={2.5} />
-                    Meus Sets
+                    <span className={styles.navLabel}>Meus Sets</span>
                   </Link>
                 )}
-                <Link to="/historico" className={`btn btn-ghost btn-sm ${styles.navLink}`}>
+                <Link to="/historico" className={`btn btn-ghost btn-sm ${styles.navLink}`} title="Histórico">
                   <History size={14} strokeWidth={2.5} />
-                  Histórico
+                  <span className={styles.navLabel}>Histórico</span>
                 </Link>
                 <div className={styles.avatarWrap} ref={menuRef}>
                   <button className={styles.avatarBtn} onClick={() => setMenuOpen((v) => !v)}>
                     <AvatarSmall size={32} fontSize="0.75rem" />
-                    <span className={styles.username}>{user.username}</span>
+                    <span className={`${styles.username} ${styles.navLabel}`}>{user.username}</span>
                     <ChevronDown
                       size={12}
                       strokeWidth={2.5}
-                      className={styles.caret}
+                      className={`${styles.caret} ${styles.navLabel}`}
                       style={{ transition: 'transform 0.2s', transform: menuOpen ? 'rotate(180deg)' : 'none', color: 'var(--gray)' }}
                     />
                   </button>
@@ -105,6 +120,12 @@ export default function Navbar() {
                         <User size={15} strokeWidth={2} />
                         Meu perfil
                       </Link>
+                      {isGom && (
+                        <Link to="/dashboard" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
+                          <Package size={15} strokeWidth={2} />
+                          Meus Sets
+                        </Link>
+                      )}
 
                       <hr className="divider" style={{ margin: '8px 0' }} />
 
