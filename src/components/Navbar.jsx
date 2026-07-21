@@ -120,12 +120,6 @@ export default function Navbar() {
                         <User size={15} strokeWidth={2} />
                         Meu perfil
                       </Link>
-                      {isGom && (
-                        <Link to="/dashboard" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
-                          <Package size={15} strokeWidth={2} />
-                          Meus Sets
-                        </Link>
-                      )}
 
                       <hr className="divider" style={{ margin: '8px 0' }} />
 
