@@ -6,8 +6,6 @@
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-bottom: 1.5px solid rgba(242, 134, 149, 0.18);
-  overflow-x: hidden;
-  max-width: 100vw;
 }
 
 .inner {
