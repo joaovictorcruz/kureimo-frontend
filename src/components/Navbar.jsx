@@ -78,7 +78,7 @@ export default function Navbar() {
                 {isGom && (
                   <Link to="/dashboard" className={`btn btn-ghost btn-sm ${styles.navLink}`} title="Meus Sets">
                     <Package size={14} strokeWidth={2.5} />
-                    <span className={styles.navLabel}>Meus Sets</span>
+                    <span className={styles.navLabel}>Sets</span>
                   </Link>
                 )}
                 <Link to="/historico" className={`btn btn-ghost btn-sm ${styles.navLink}`} title="Histórico">
