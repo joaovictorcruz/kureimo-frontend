@@ -112,3 +112,30 @@
     --logo-size: 36px;
   }
 }
+
+/* Abaixo de 640px: em vez de esconder funcionalidade num dropdown, os botões
+   viram só ícone (com title/tooltip) — continuam visíveis e clicáveis, só
+   sem o texto do lado, pra caber na tela sem estourar. */
+@media (max-width: 640px) {
+  .inner {
+    padding: 10px 12px;
+  }
+
+  .actions {
+    gap: 4px;
+  }
+
+  .navLink {
+    padding: 8px !important;
+    gap: 0 !important;
+  }
+
+  .navLabel {
+    display: none;
+  }
+
+  .avatarBtn {
+    padding: 4px;
+    gap: 0;
+  }
+}
