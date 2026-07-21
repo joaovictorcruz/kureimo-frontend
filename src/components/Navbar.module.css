@@ -27,10 +27,15 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
 }
 
-.navLink { color: var(--ink-soft) !important; }
+.navLink {
+  color: var(--ink-soft) !important;
+  padding: 7px 10px !important;
+  gap: 5px !important;
+  font-size: 0.8rem !important;
+}
 
 .avatarWrap { position: relative; }
 
@@ -110,5 +115,9 @@
 @media (max-width: 768px) {
   .logoSize {
     --logo-size: 36px;
+  }
+
+  .inner {
+    padding: 12px 14px;
   }
 }
