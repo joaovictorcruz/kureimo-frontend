@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from './Logo';
 import AuthModal from './AuthModal';
 import SupportModal from './SupportModal';
 import styles from './Navbar.module.css';
 import {
-  Package,
+  Newspaper,
   History,
   User,
   LogOut,
@@ -50,6 +50,15 @@ export default function Navbar() {
 
   const initial = user?.username?.[0]?.toUpperCase() || '?';
   const isMobile = useIsMobile(768);
+  const location = useLocation();
+
+  const isDashboardActive = location.pathname === '/dashboard';
+  const isHistoryActive   = location.pathname.startsWith('/historico');
+
+  // No mobile, só a aba em que você está mostra o texto (feito igual o app do X);
+  // as outras ficam só com o ícone. No desktop, sempre expandido.
+  const showDashboardLabel = !isMobile || isDashboardActive;
+  const showHistoryLabel   = !isMobile || isHistoryActive;
 
   const AvatarSmall = ({ size = 32, fontSize = '0.75rem' }) => (
     profilePicUrl ? (
@@ -76,14 +85,22 @@ export default function Navbar() {
             {user ? (
               <>
                 {isGom && (
-                  <Link to="/dashboard" className={`btn btn-ghost btn-sm ${styles.navLink}`} title="Meus Sets">
-                    <Package size={14} strokeWidth={2.5} />
-                    <span className={styles.navLabel}>Sets</span>
+                  <Link
+                    to="/dashboard"
+                    className={`btn btn-ghost btn-sm ${styles.navLink} ${isDashboardActive ? styles.navLinkActive : ''} ${!showDashboardLabel ? styles.navLinkCollapsed : ''}`}
+                    title="Meus Sets"
+                  >
+                    <Newspaper size={14} strokeWidth={2.5} />
+                    {showDashboardLabel && <span className={styles.navLabel}>Meus Sets</span>}
                   </Link>
                 )}
-                <Link to="/historico" className={`btn btn-ghost btn-sm ${styles.navLink}`} title="Histórico">
+                <Link
+                  to="/historico"
+                  className={`btn btn-ghost btn-sm ${styles.navLink} ${isHistoryActive ? styles.navLinkActive : ''} ${!showHistoryLabel ? styles.navLinkCollapsed : ''}`}
+                  title="Histórico"
+                >
                   <History size={14} strokeWidth={2.5} />
-                  <span className={styles.navLabel}>Histórico</span>
+                  {showHistoryLabel && <span className={styles.navLabel}>Histórico</span>}
                 </Link>
                 <div className={styles.avatarWrap} ref={menuRef}>
                   <button className={styles.avatarBtn} onClick={() => setMenuOpen((v) => !v)}>

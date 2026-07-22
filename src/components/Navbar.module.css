@@ -37,6 +37,28 @@
   padding: 7px 10px !important;
   gap: 5px !important;
   font-size: 0.8rem !important;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.navLink:hover {
+  background: var(--blush-light) !important;
+  color: var(--rose-dark) !important;
+}
+
+.navLink:active {
+  transform: scale(0.94);
+}
+
+/* Aba em que você está — expandida, com destaque, igual o app do X */
+.navLinkActive {
+  background: var(--blush-light) !important;
+  color: var(--rose-dark) !important;
+  font-weight: 800 !important;
+}
+
+/* Aba em que você não está, no mobile — só o ícone, formato quadradinho */
+.navLinkCollapsed {
+  padding: 8px !important;
 }
 
 .avatarWrap { position: relative; }
