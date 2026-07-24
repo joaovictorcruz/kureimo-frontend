@@ -112,6 +112,7 @@ export default function SetPage() {
 
   const imgInputRef                     = useRef(null);
   const [cropSrc, setCropSrc]           = useState(null);
+  const [cropIsExisting, setCropIsExisting] = useState(false); // true = recortando a imagem que já está publicada
   const [uploadingImg, setUploadingImg] = useState(false);
 
   const { timeLeft, phase, openedAt, closedAt } = useCountdown(set?.claimOpensAt, set?.status);
@@ -442,14 +443,21 @@ export default function SetPage() {
     if (!file) return;
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) { toast.error('Formato inválido. Use JPG, JPEG, PNG ou WEBP.'); e.target.value = ''; return; }
     if (file.size > MAX_IMAGE_SIZE) { toast.error('A imagem deve ter no máximo 5MB.'); e.target.value = ''; return; }
-    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    if (cropSrc && !cropIsExisting) URL.revokeObjectURL(cropSrc);
+    setCropIsExisting(false);
     setCropSrc(URL.createObjectURL(file));
     e.target.value = '';
   };
 
+  const handleRecropExisting = () => {
+    setCropIsExisting(true);
+    setCropSrc(set.imageUrl);
+  };
+
   const handleCropConfirm = async (blob) => {
-    URL.revokeObjectURL(cropSrc);
+    if (!cropIsExisting) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
+    setCropIsExisting(false);
     setUploadingImg(true);
     try {
       const formData = new FormData();
@@ -464,7 +472,11 @@ export default function SetPage() {
     }
   };
 
-  const handleCropCancel = () => { URL.revokeObjectURL(cropSrc); setCropSrc(null); };
+  const handleCropCancel = () => {
+    if (!cropIsExisting) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropIsExisting(false);
+  };
 
   // ── Renders ──
   if (loading) return (
@@ -558,18 +570,31 @@ export default function SetPage() {
 
                 {isOwnerGom && set.status === 'Draft' && (
                   <>
-                    <button
-                      className={styles.changeImgBtn}
-                      onClick={() => imgInputRef.current?.click()}
-                      disabled={uploadingImg}
-                      title="Alterar imagem do set"
-                    >
-                      {uploadingImg
-                        ? <Loader2 size={12} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
-                        : <ImageIcon size={12} strokeWidth={2} />
-                      }
-                      Alterar imagem
-                    </button>
+                    <div className={styles.changeImgActions}>
+                      {set.imageUrl && (
+                        <button
+                          className={styles.changeImgBtn}
+                          onClick={handleRecropExisting}
+                          disabled={uploadingImg}
+                          title="Recortar a imagem atual"
+                        >
+                          <ImageIcon size={12} strokeWidth={2} />
+                          Recortar
+                        </button>
+                      )}
+                      <button
+                        className={styles.changeImgBtn}
+                        onClick={() => imgInputRef.current?.click()}
+                        disabled={uploadingImg}
+                        title="Enviar uma nova imagem"
+                      >
+                        {uploadingImg
+                          ? <Loader2 size={12} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+                          : <ImageIcon size={12} strokeWidth={2} />
+                        }
+                        {set.imageUrl ? 'Nova imagem' : 'Alterar imagem'}
+                      </button>
+                    </div>
                     <input ref={imgInputRef} type="file" accept={ALLOWED_IMAGE_EXTS} onChange={handleImgFileChange} style={{ display: 'none' }} />
                   </>
                 )}
@@ -652,7 +677,7 @@ export default function SetPage() {
                   )}
                   <button className="btn btn-secondary btn-sm" onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
-                    toast.success('Link copiado! 🔗');
+                    toast.success('Link copiado!');
                   }} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <LinkIcon size={13} strokeWidth={2} /> Link
                   </button>
@@ -866,6 +891,7 @@ export default function SetPage() {
           src={cropSrc}
           shape="rect"
           aspect={16 / 9}
+          crossOrigin={cropIsExisting ? 'anonymous' : undefined}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
         />

@@ -3,6 +3,12 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 /**
  * ImageCropModal
  *
+ * Modelo: a moldura (o quadro onde a imagem final vai aparecer) tem tamanho
+ * FIXO — sempre na proporção de `aspect`. A imagem em si é livre: pode ser
+ * movida e redimensionada (inclusive esticada, sem travar proporção) dentro
+ * dessa moldura. Ela nunca pode deixar espaço vazio — o tamanho mínimo dela
+ * é sempre o suficiente pra cobrir a moldura inteira.
+ *
  * Props:
  *  - src: string (objectURL da imagem)
  *  - shape: 'rect' | 'circle'   (padrão: 'rect')
@@ -14,132 +20,99 @@ export default function ImageCropModal({
   src,
   shape = 'rect',
   aspect,
+  crossOrigin,
   onConfirm,
   onCancel,
 }) {
   const defaultAspect = aspect ?? (shape === 'circle' ? 1 : 16 / 9);
 
-  const containerRef = useRef(null);
-  const imgRef       = useRef(null);
-  const canvasRef    = useRef(null);
+  const frameRef  = useRef(null); // wrapper NÃO clipado — onde ficam bordas/handles
+  const imgRef    = useRef(null);
+  const canvasRef = useRef(null);
 
-  // naturalWidth/Height da imagem
-  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
-  // Dimensões do container de exibição (display)
-  const [dispSize, setDispSize] = useState({ w: 0, h: 0 });
-  // Crop em coordenadas de DISPLAY (pixels na tela)
-  const [crop, setCrop] = useState(null); // { x, y, w, h }
-  const dragRef  = useRef(null); // { mode, startX, startY, origCrop }
+  // Posição/tamanho da IMAGEM em pixels de tela, relativos ao frame
+  const [imgBox, setImgBox] = useState(null); // { x, y, w, h }
+  const dragRef = useRef(null); // { mode, startX, startY, origBox }
   const [rendering, setRendering] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  // ── Calcula tamanho do container de display ──
-  const measureContainer = useCallback(() => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    setDispSize({ w: rect.width, h: rect.height });
-  }, []);
-
-  useEffect(() => {
-    measureContainer();
-    window.addEventListener('resize', measureContainer);
-    return () => window.removeEventListener('resize', measureContainer);
-  }, [measureContainer]);
-
-  // ── Quando a imagem carrega, inicializa o crop centralizado ──
+  // ── Quando a imagem carrega: centraliza cobrindo o frame inteiro (estilo "cover") ──
   const handleImgLoad = () => {
     const img = imgRef.current;
-    if (!img) return;
-    setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+    if (!img || !frameRef.current) return;
+    const natW = img.naturalWidth;
+    const natH = img.naturalHeight;
+    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
 
-    if (!containerRef.current) return;
-    const cw = containerRef.current.clientWidth;
-    const ch = containerRef.current.clientHeight;
+    const scale = Math.max(fw / natW, fh / natH);
+    const w = natW * scale;
+    const h = natH * scale;
 
-    // Calcula crop inicial que ocupa 80% da menor dimensão
-    let cw2, ch2;
-    if (defaultAspect >= 1) {
-      cw2 = cw * 0.8;
-      ch2 = cw2 / defaultAspect;
-    } else {
-      ch2 = ch * 0.8;
-      cw2 = ch2 * defaultAspect;
-    }
-    // Garante que não ultrapassa o container
-    if (cw2 > cw * 0.9) { cw2 = cw * 0.9; ch2 = cw2 / defaultAspect; }
-    if (ch2 > ch * 0.9) { ch2 = ch * 0.9; cw2 = ch2 * defaultAspect; }
-
-    setCrop({
-      x: (cw - cw2) / 2,
-      y: (ch - ch2) / 2,
-      w: cw2,
-      h: ch2,
-    });
+    setImgBox({ x: (fw - w) / 2, y: (fh - h) / 2, w, h });
+    setReady(true);
   };
 
-  // ── Helpers de clamp ──
-  const clampCrop = useCallback((c, cw, ch) => {
-    let { x, y, w, h } = c;
-    // mantém aspect
-    h = w / defaultAspect;
-    // clamp tamanho mínimo
-    const minSize = 40;
-    if (w < minSize) { w = minSize; h = w / defaultAspect; }
-    if (h < minSize) { h = minSize; w = h * defaultAspect; }
-    // clamp posição
-    if (x < 0) x = 0;
-    if (y < 0) y = 0;
-    if (x + w > cw) x = cw - w;
-    if (y + h > ch) y = ch - h;
-    // clamp de novo depois de ajustar posição
-    if (w > cw) { w = cw; h = w / defaultAspect; }
-    if (h > ch) { h = ch; w = h * defaultAspect; }
+  // ── Nunca deixa a imagem menor que o frame nem revelar espaço vazio ──
+  const clampBox = useCallback((b, fw, fh) => {
+    let { x, y, w, h } = b;
+    const minSize = 30;
+    if (w < minSize) w = minSize;
+    if (h < minSize) h = minSize;
+    if (w < fw) w = fw;
+    if (h < fh) h = fh;
+    if (x > 0) x = 0;
+    if (y > 0) y = 0;
+    if (x + w < fw) x = fw - w;
+    if (y + h < fh) y = fh - h;
     return { x, y, w, h };
-  }, [defaultAspect]);
+  }, []);
 
-  // ── Drag: mover ou redimensionar ──
-  const getHandleAt = (mx, my, c) => {
+  // ── Detecta em qual alça (ou "mover") o ponteiro está ──
+  const getHandleAt = (mx, my, b) => {
     const HIT = 14;
-    const corners = [
-      { name: 'nw', cx: c.x,       cy: c.y },
-      { name: 'ne', cx: c.x + c.w, cy: c.y },
-      { name: 'sw', cx: c.x,       cy: c.y + c.h },
-      { name: 'se', cx: c.x + c.w, cy: c.y + c.h },
+    const midX = b.x + b.w / 2;
+    const midY = b.y + b.h / 2;
+    const points = [
+      { name: 'nw', px: b.x,       py: b.y },
+      { name: 'ne', px: b.x + b.w, py: b.y },
+      { name: 'sw', px: b.x,       py: b.y + b.h },
+      { name: 'se', px: b.x + b.w, py: b.y + b.h },
+      { name: 'n',  px: midX,      py: b.y },
+      { name: 's',  px: midX,      py: b.y + b.h },
+      { name: 'w',  px: b.x,       py: midY },
+      { name: 'e',  px: b.x + b.w, py: midY },
     ];
-    for (const corner of corners) {
-      if (Math.abs(mx - corner.cx) < HIT && Math.abs(my - corner.cy) < HIT) {
-        return corner.name;
-      }
+    for (const p of points) {
+      if (Math.abs(mx - p.px) < HIT && Math.abs(my - p.py) < HIT) return p.name;
     }
-    // inside crop = move
-    if (mx > c.x && mx < c.x + c.w && my > c.y && my < c.y + c.h) return 'move';
+    if (mx > b.x && mx < b.x + b.w && my > b.y && my < b.y + b.h) return 'move';
     return null;
   };
 
-  const toContainerCoords = (e) => {
-    const rect = containerRef.current.getBoundingClientRect();
+  const toFrameCoords = (e) => {
+    const rect = frameRef.current.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
   const onPointerDown = (e) => {
-    if (!crop) return;
+    if (!imgBox) return;
     e.preventDefault();
-    const { x, y } = toContainerCoords(e);
-    const mode = getHandleAt(x, y, crop);
+    const { x, y } = toFrameCoords(e);
+    const mode = getHandleAt(x, y, imgBox);
     if (!mode) return;
-    dragRef.current = { mode, startX: x, startY: y, origCrop: { ...crop } };
+    dragRef.current = { mode, startX: x, startY: y, origBox: { ...imgBox } };
   };
 
   const onPointerMove = useCallback((e) => {
-    if (!dragRef.current || !crop) return;
+    if (!dragRef.current || !imgBox || !frameRef.current) return;
     e.preventDefault();
-    const { x: mx, y: my } = toContainerCoords(e);
-    const { mode, startX, startY, origCrop: o } = dragRef.current;
+    const { x: mx, y: my } = toFrameCoords(e);
+    const { mode, startX, startY, origBox: o } = dragRef.current;
     const dx = mx - startX;
     const dy = my - startY;
-    const cw = containerRef.current?.clientWidth  || dispSize.w;
-    const ch = containerRef.current?.clientHeight || dispSize.h;
+    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
 
     let next = { ...o };
 
@@ -147,28 +120,15 @@ export default function ImageCropModal({
       next.x = o.x + dx;
       next.y = o.y + dy;
     } else {
-      // Resize — anchor oposto ao handle
-      if (mode === 'se') {
-        next.w = o.w + dx;
-      } else if (mode === 'sw') {
-        next.x = o.x + dx;
-        next.w = o.w - dx;
-      } else if (mode === 'ne') {
-        next.y = o.y + dy;
-        next.h = o.h - dy;
-        next.w = next.h * defaultAspect;
-      } else if (mode === 'nw') {
-        next.x = o.x + dx;
-        next.y = o.y + dy;
-        next.w = o.w - dx;
-        next.h = next.w / defaultAspect;
-      }
-      // Keep aspect
-      next.h = next.w / defaultAspect;
+      // Redimensiona livremente — largura e altura são independentes, sem travar proporção
+      if (mode.includes('e')) next.w = o.w + dx;
+      if (mode.includes('w')) { next.w = o.w - dx; next.x = o.x + dx; }
+      if (mode.includes('s')) next.h = o.h + dy;
+      if (mode.includes('n')) { next.h = o.h - dy; next.y = o.y + dy; }
     }
 
-    setCrop(clampCrop(next, cw, ch));
-  }, [crop, dispSize, clampCrop, defaultAspect]);
+    setImgBox(clampBox(next, fw, fh));
+  }, [imgBox, clampBox]);
 
   const onPointerUp = () => { dragRef.current = null; };
 
@@ -185,49 +145,51 @@ export default function ImageCropModal({
     };
   }, [onPointerMove]);
 
-  // ── Cursor baseado na posição do mouse ──
   const getCursor = useCallback((e) => {
-    if (!crop || !containerRef.current) return;
-    const { x, y } = toContainerCoords(e);
-    const handle = getHandleAt(x, y, crop);
-    const cursors = { nw: 'nw-resize', ne: 'ne-resize', sw: 'sw-resize', se: 'se-resize', move: 'move' };
-    containerRef.current.style.cursor = cursors[handle] || 'default';
-  }, [crop]);
+    if (!imgBox || !frameRef.current) return;
+    const { x, y } = toFrameCoords(e);
+    const handle = getHandleAt(x, y, imgBox);
+    const cursors = {
+      nw: 'nwse-resize', se: 'nwse-resize',
+      ne: 'nesw-resize', sw: 'nesw-resize',
+      n: 'ns-resize', s: 'ns-resize',
+      e: 'ew-resize', w: 'ew-resize',
+      move: 'move',
+    };
+    frameRef.current.style.cursor = cursors[handle] || 'default';
+  }, [imgBox]);
 
-  // ── Confirmar: renderiza no canvas e gera blob ──
+  // ── Confirmar: renderiza no canvas exatamente o que está visível no frame ──
   const handleConfirm = useCallback(() => {
-    if (!crop || !imgRef.current || !canvasRef.current) return;
+    if (!imgBox || !imgRef.current || !canvasRef.current || !frameRef.current) return;
     setRendering(true);
 
     const img = imgRef.current;
     const natW = img.naturalWidth;
     const natH = img.naturalHeight;
+    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
 
-    // Escala: proporção display → natural
-    const dispW = img.clientWidth;
-    const dispH = img.clientHeight;
-    // Offset da imagem dentro do container (object-fit: contain)
-    const containerW = containerRef.current.clientWidth;
-    const containerH = containerRef.current.clientHeight;
-    const imgOffX = (containerW - dispW) / 2;
-    const imgOffY = (containerH - dispH) / 2;
+    // Escala tela → natural, por eixo (podem ser diferentes, já que a imagem pode estar esticada)
+    const scaleX = natW / imgBox.w;
+    const scaleY = natH / imgBox.h;
 
-    const scaleX = natW / dispW;
-    const scaleY = natH / dispH;
+    const natCropX = (0 - imgBox.x) * scaleX;
+    const natCropY = (0 - imgBox.y) * scaleY;
+    const natCropW = fw * scaleX;
+    const natCropH = fh * scaleY;
 
-    // Crop em pixels naturais
-    const natCropX = (crop.x - imgOffX) * scaleX;
-    const natCropY = (crop.y - imgOffY) * scaleY;
-    const natCropW = crop.w * scaleX;
-    const natCropH = crop.h * scaleY;
-
-    // Tamanho de saída (max 1200px)
+    // Resolução de saída, mantendo a proporção do frame (o "esticamento" já foi
+    // aplicado visualmente e é reproduzido aqui pelo próprio drawImage)
     const outMax = 1200;
-    const outW = Math.min(natCropW, outMax);
-    const outH = outW / defaultAspect;
+    let outW = fw;
+    let outH = fh;
+    const upscale = outMax / Math.max(outW, outH);
+    if (upscale > 1) { outW *= upscale; outH *= upscale; }
+    outW = Math.round(outW);
+    outH = Math.round(outH);
 
     const canvas = canvasRef.current;
-    canvas.width  = outW;
+    canvas.width = outW;
     canvas.height = outH;
     const ctx = canvas.getContext('2d');
 
@@ -243,37 +205,41 @@ export default function ImageCropModal({
       setRendering(false);
       onConfirm(blob);
     }, 'image/jpeg', 0.9);
-  }, [crop, shape, defaultAspect, onConfirm]);
+  }, [imgBox, shape, onConfirm]);
 
-  // ── Render ──
-  const c = crop;
-
-  // Cursor style para handles
-  const handleStyle = (corner) => {
+  const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+  const handleStyle = (name) => {
+    const b = imgBox;
+    if (!b) return { display: 'none' };
+    const midX = b.x + b.w / 2;
+    const midY = b.y + b.h / 2;
     const pos = {
-      nw: { top: -8,       left: -8 },
-      ne: { top: -8,       right: -8 },
-      sw: { bottom: -8,    left: -8 },
-      se: { bottom: -8,    right: -8 },
-    }[corner];
+      nw: { left: b.x,       top: b.y },
+      n:  { left: midX,      top: b.y },
+      ne: { left: b.x + b.w, top: b.y },
+      e:  { left: b.x + b.w, top: midY },
+      se: { left: b.x + b.w, top: b.y + b.h },
+      s:  { left: midX,      top: b.y + b.h },
+      sw: { left: b.x,       top: b.y + b.h },
+      w:  { left: b.x,       top: midY },
+    }[name];
     return {
       position: 'absolute',
+      left: pos.left - 9,
+      top: pos.top - 9,
       width: 18,
       height: 18,
       background: 'white',
       border: '2.5px solid var(--rose)',
-      borderRadius: shape === 'circle' ? '50%' : 4,
+      borderRadius: '50%',
       boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
       zIndex: 10,
-      ...pos,
+      pointerEvents: 'none',
     };
   };
 
   return (
-    <div
-      className="modal-overlay"
-      style={{ zIndex: 1100, alignItems: 'center' }}
-    >
+    <div className="modal-overlay" style={{ zIndex: 1100, alignItems: 'center' }}>
       <div
         className="card"
         style={{
@@ -291,104 +257,89 @@ export default function ImageCropModal({
         <div style={{ padding: '18px 24px', borderBottom: '1.5px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>
-               Recortar imagem
+              Ajustar imagem
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: 'var(--gray)' }}>
-              Arraste os cantos para redimensionar · Arraste dentro para mover
+              Arraste as bordas pra redimensionar livremente · Arraste dentro pra mover
             </p>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onCancel} style={{ padding: '6px 10px' }}>✕</button>
         </div>
 
-        {/* Crop area */}
-        <div
-          ref={containerRef}
-          style={{
-            position: 'relative',
-            width: '100%',
-            height: 360,
-            background: '#1A0A2E',
-            overflow: 'hidden',
-            flexShrink: 0,
-            userSelect: 'none',
-          }}
-          onPointerDown={onPointerDown}
-          onPointerMove={getCursor}
-          onTouchStart={onPointerDown}
-        >
-          <img
-            ref={imgRef}
-            src={src}
-            onLoad={handleImgLoad}
+        {/* Área de ajuste */}
+        <div style={{ padding: '28px 24px', background: '#1A0A2E', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div
+            ref={frameRef}
             style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%,-50%)',
+              position: 'relative',
+              width: shape === 'circle' ? 260 : '100%',
               maxWidth: '100%',
-              maxHeight: '100%',
-              objectFit: 'contain',
-              display: 'block',
-              pointerEvents: 'none',
+              aspectRatio: String(defaultAspect),
               userSelect: 'none',
+              touchAction: 'none',
             }}
-            alt="crop"
-            draggable={false}
-          />
+            onPointerDown={onPointerDown}
+            onPointerMove={getCursor}
+            onTouchStart={onPointerDown}
+          >
+            {/* Viewport clipado — só o que está aqui dentro entra no resultado final */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                overflow: 'hidden',
+                borderRadius: shape === 'circle' ? '50%' : 8,
+                background: '#0d0518',
+              }}
+            >
+              {imgBox ? (
+                <img
+                  ref={imgRef}
+                  src={src}
+                  crossOrigin={crossOrigin}
+                  onLoad={handleImgLoad}
+                  style={{
+                    position: 'absolute',
+                    left: imgBox.x,
+                    top: imgBox.y,
+                    width: imgBox.w,
+                    height: imgBox.h,
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                  }}
+                  alt="ajustar"
+                  draggable={false}
+                />
+              ) : (
+                // Precisa existir mesmo antes do primeiro layout, pra disparar o onLoad
+                <img
+                  ref={imgRef}
+                  src={src}
+                  crossOrigin={crossOrigin}
+                  onLoad={handleImgLoad}
+                  style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+                  alt=""
+                  draggable={false}
+                />
+              )}
+            </div>
 
-          {/* Overlay escuro fora do crop */}
-          {c && (
-            <>
-              {/* Top */}
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: c.y, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-              {/* Bottom */}
-              <div style={{ position: 'absolute', top: c.y + c.h, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-              {/* Left */}
-              <div style={{ position: 'absolute', top: c.y, left: 0, width: c.x, height: c.h, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-              {/* Right */}
-              <div style={{ position: 'absolute', top: c.y, left: c.x + c.w, right: 0, height: c.h, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-
-              {/* Crop border + handles */}
-              <div
-                style={{
-                  position: 'absolute',
-                  left: c.x,
-                  top: c.y,
-                  width: c.w,
-                  height: c.h,
-                  border: '2px solid white',
-                  borderRadius: shape === 'circle' ? '50%' : 6,
-                  boxSizing: 'border-box',
-                  pointerEvents: 'none',
-                }}
-              >
-                {/* Grid lines (rule of thirds) */}
-                {shape !== 'circle' && (
-                  <>
-                    <div style={{ position: 'absolute', left: '33.3%', top: 0, bottom: 0, borderLeft: '1px solid rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
-                    <div style={{ position: 'absolute', left: '66.6%', top: 0, bottom: 0, borderLeft: '1px solid rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
-                    <div style={{ position: 'absolute', top: '33.3%', left: 0, right: 0, borderTop: '1px solid rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
-                    <div style={{ position: 'absolute', top: '66.6%', left: 0, right: 0, borderTop: '1px solid rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
-                  </>
-                )}
-              </div>
-
-              {/* Handles (pointer-events: all) */}
-              {['nw','ne','sw','se'].map((h) => (
-                <div key={h} style={{
-                  ...handleStyle(h),
-                  left: h.includes('w') ? c.x - 9 : undefined,
-                  right: h.includes('e') ? (containerRef.current?.clientWidth - c.x - c.w - 9) : undefined,
-                  top:    h.includes('n') ? c.y - 9 : undefined,
-                  bottom: h.includes('s') ? (containerRef.current?.clientHeight - c.y - c.h - 9) : undefined,
-                  position: 'absolute',
-                }} />
-              ))}
-            </>
-          )}
+            {/* Borda + alças — ficam FORA do clip, pra nunca sumir mesmo com a imagem ampliada */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                border: '2px solid white',
+                borderRadius: shape === 'circle' ? '50%' : 8,
+                boxSizing: 'border-box',
+                pointerEvents: 'none',
+              }}
+            />
+            {ready && handles.map((h) => <div key={h} style={handleStyle(h)} />)}
+          </div>
         </div>
 
-        {/* Hidden canvas */}
+        {/* Canvas oculto usado só pra gerar o blob final */}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
         {/* Footer */}
@@ -396,10 +347,10 @@ export default function ImageCropModal({
           <button className="btn btn-secondary" onClick={onCancel} style={{ flex: 1 }}>
             Cancelar
           </button>
-          <button className="btn btn-primary" onClick={handleConfirm} disabled={!crop || rendering} style={{ flex: 2 }}>
+          <button className="btn btn-primary" onClick={handleConfirm} disabled={!imgBox || rendering} style={{ flex: 2 }}>
             {rendering
               ? <span className="spinner" style={{ width: 18, height: 18 }} />
-              : 'Confirmar recorte'
+              : 'Confirmar'
             }
           </button>
         </div>

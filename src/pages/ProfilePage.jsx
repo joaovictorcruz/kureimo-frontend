@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { usersApi } from '../api/client';
 import ImageCropModal from '../components/ImageCropModal';
+import AvatarViewModal from '../components/AvatarViewModal';
 import DeleteAccountModal from '../components/DeleteAccountModal';
 import {
   User,
@@ -51,6 +52,8 @@ export default function ProfilePage() {
   const [view, setView]                       = useState('info'); // 'info' | 'edit' | 'overview'
   const [cropSrc, setCropSrc]                 = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [viewAvatar, setViewAvatar] = useState(null); // { src, initial, name } — foto de um reviewer
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [profile, setProfile]                 = useState({ username: '', email: '', phoneNumber: '' });
 
@@ -175,7 +178,7 @@ export default function ProfilePage() {
                   )}
                   <button
                     className={styles.avatarEditBtn}
-                    onClick={() => avatarInputRef.current?.click()}
+                    onClick={() => (avatarUrl ? setShowAvatarModal(true) : avatarInputRef.current?.click())}
                     disabled={uploadingAvatar}
                     title="Trocar foto de perfil"
                   >
@@ -304,11 +307,16 @@ export default function ProfilePage() {
                                       <img
                                         src={r.authorProfilePicUrl}
                                         alt={r.authorUsername}
-                                        style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                                        onClick={() => setViewAvatar({ src: r.authorProfilePicUrl, initial: reviewInitial, name: r.authorUsername })}
+                                        style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }}
                                         onError={(e) => { e.target.style.display = 'none'; }}
                                       />
                                     ) : (
-                                      <div className="avatar" style={{ width: 32, height: 32, fontSize: '0.72rem', flexShrink: 0 }}>
+                                      <div
+                                        className="avatar"
+                                        onClick={() => setViewAvatar({ src: null, initial: reviewInitial, name: r.authorUsername })}
+                                        style={{ width: 32, height: 32, fontSize: '0.72rem', flexShrink: 0, cursor: 'pointer' }}
+                                      >
                                         {reviewInitial}
                                       </div>
                                     )}
@@ -468,8 +476,30 @@ export default function ProfilePage() {
           src={cropSrc}
           shape="circle"
           aspect={1}
+          crossOrigin={cropSrc === avatarUrl ? 'anonymous' : undefined}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
+        />
+      )}
+
+      {showAvatarModal && (
+        <AvatarViewModal
+          src={avatarUrl}
+          initial={initial}
+          name={user.username}
+          editable
+          onResize={() => { setShowAvatarModal(false); setCropSrc(avatarUrl); }}
+          onChangeImage={() => { setShowAvatarModal(false); avatarInputRef.current?.click(); }}
+          onClose={() => setShowAvatarModal(false)}
+        />
+      )}
+
+      {viewAvatar && (
+        <AvatarViewModal
+          src={viewAvatar.src}
+          initial={viewAvatar.initial}
+          name={viewAvatar.name}
+          onClose={() => setViewAvatar(null)}
         />
       )}
 

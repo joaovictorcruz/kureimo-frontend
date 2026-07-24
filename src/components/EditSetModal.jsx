@@ -159,7 +159,7 @@ function FontSelector({ value, onChange, previewText }) {
 }
 
 /* ─── ImageUploadField (Edit) — exibe URL existente ou preview do crop ─── */
-function ImageUploadField({ imagePreview, existingUrl, onFileSelected, onClear }) {
+function ImageUploadField({ imagePreview, existingUrl, onFileSelected, onRecropExisting, onClear }) {
   const inputRef = useRef();
   const displaySrc = imagePreview || existingUrl;
   const handleChange = (e) => {
@@ -179,7 +179,17 @@ function ImageUploadField({ imagePreview, existingUrl, onFileSelected, onClear }
             <img src={displaySrc} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
           </div>
           <button type="button" onClick={onClear} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-          <button type="button" onClick={() => inputRef.current?.click()} style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>✂️ Recortar / Trocar</button>
+          <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 6 }}>
+            {/* Só faz sentido recortar de novo a imagem que já existe no servidor — não a que acabou de ser trocada localmente */}
+            {existingUrl && !imagePreview && (
+              <button type="button" onClick={onRecropExisting} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                ✂️ Recortar atual
+              </button>
+            )}
+            <button type="button" onClick={() => inputRef.current?.click()} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+              🖼️ Nova imagem
+            </button>
+          </div>
         </div>
       ) : (
         <div onClick={() => inputRef.current?.click()} style={{ border: '2px dashed var(--card-border)', borderRadius: 'var(--radius-sm)', padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.5)', transition: 'border-color 0.15s, background 0.15s' }}
@@ -215,6 +225,7 @@ export default function EditSetModal({ set, onClose, onSaved }) {
   // croppedBlob = resultado do crop, imagePreview = URL do blob
   const [existingUrl, setExistingUrl]   = useState(set.imageUrl || '');
   const [cropSrc, setCropSrc]           = useState(null);
+  const [cropIsExisting, setCropIsExisting] = useState(false); // true = recortando a imagem que já está no servidor
   const [croppedBlob, setCroppedBlob]   = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
@@ -227,21 +238,29 @@ export default function EditSetModal({ set, onClose, onSaved }) {
 
   const handleFileSelected = (file) => {
     if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropIsExisting(false);
     setCropSrc(URL.createObjectURL(file));
+  };
+
+  const handleRecropExisting = () => {
+    setCropIsExisting(true);
+    setCropSrc(existingUrl);
   };
 
   const handleCropConfirm = (blob) => {
     setCroppedBlob(blob);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(URL.createObjectURL(blob));
-    URL.revokeObjectURL(cropSrc);
+    if (!cropIsExisting) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
+    setCropIsExisting(false);
     setExistingUrl(''); // descarta URL antiga ao confirmar novo crop
   };
 
   const handleCropCancel = () => {
-    URL.revokeObjectURL(cropSrc);
+    if (!cropIsExisting) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
+    setCropIsExisting(false);
   };
 
   const handleClearImage = () => {
@@ -322,6 +341,7 @@ export default function EditSetModal({ set, onClose, onSaved }) {
               imagePreview={imagePreview}
               existingUrl={existingUrl}
               onFileSelected={handleFileSelected}
+              onRecropExisting={handleRecropExisting}
               onClear={handleClearImage}
             />
 
@@ -363,6 +383,7 @@ export default function EditSetModal({ set, onClose, onSaved }) {
           src={cropSrc}
           shape="rect"
           aspect={16 / 9}
+          crossOrigin={cropIsExisting ? 'anonymous' : undefined}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
         />

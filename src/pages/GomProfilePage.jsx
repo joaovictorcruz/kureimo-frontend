@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { usersApi } from '../api/client';
 import { Star, ArrowLeft, Loader2, MessageSquare, Package } from 'lucide-react';
 import styles from './GomProfilePage.module.css';
+import AvatarViewModal from '../components/AvatarViewModal';
 
 const MAX_COMMENT = 500;
 
@@ -47,6 +48,7 @@ export default function GomProfilePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage]       = useState(1);
   const [loading, setLoading] = useState(true);
+  const [viewAvatar, setViewAvatar] = useState(null); // { src, initial, name }
   const [loadingReviews, setLoadingReviews] = useState(false);
 
   const [rating, setRating]   = useState(0);
@@ -126,6 +128,7 @@ export default function GomProfilePage() {
   const hasRating = gom.reviewCount > 0;
 
   return (
+    <>
     <main className={styles.page}>
       <div className="page-container">
 
@@ -272,11 +275,16 @@ export default function GomProfilePage() {
                                 <img
                                   src={r.authorProfilePicUrl}
                                   alt={r.authorUsername}
-                                  style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                                  onClick={() => setViewAvatar({ src: r.authorProfilePicUrl, initial: reviewInitial, name: r.authorUsername })}
+                                  style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }}
                                   onError={(e) => { e.target.style.display = 'none'; }}
                                 />
                               ) : (
-                                <div className="avatar" style={{ width: 32, height: 32, fontSize: '0.72rem', flexShrink: 0 }}>
+                                <div
+                                  className="avatar"
+                                  onClick={() => setViewAvatar({ src: null, initial: reviewInitial, name: r.authorUsername })}
+                                  style={{ width: 32, height: 32, fontSize: '0.72rem', flexShrink: 0, cursor: 'pointer' }}
+                                >
                                   {reviewInitial}
                                 </div>
                               )}
@@ -328,5 +336,15 @@ export default function GomProfilePage() {
         </div>
       </div>
     </main>
+
+      {viewAvatar && (
+        <AvatarViewModal
+          src={viewAvatar.src}
+          initial={viewAvatar.initial}
+          name={viewAvatar.name}
+          onClose={() => setViewAvatar(null)}
+        />
+      )}
+    </>
   );
 }

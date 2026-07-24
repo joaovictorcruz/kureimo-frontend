@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import styles from './ClaimRankModal.module.css';
 import { X, Smartphone, Trophy, InboxIcon, Radio } from 'lucide-react';
+import AvatarViewModal from './AvatarViewModal';
 
 const MEDAL_COLORS = ['#F59E0B', '#9CA3AF', '#CD7C2F'];
 
@@ -8,6 +9,7 @@ export default function ClaimRankModal({ photocard, userId, connection, onClose 
   const [claims, setClaims] = useState(
     [...(photocard.claims || [])].sort((a, b) => new Date(a.claimedAt) - new Date(b.claimedAt))
   );
+  const [viewAvatar, setViewAvatar] = useState(null); // { src, initial, name }
 
   useEffect(() => {
     if (!connection) return;
@@ -35,6 +37,7 @@ export default function ClaimRankModal({ photocard, userId, connection, onClose 
   }, [connection, photocard.id]);
 
   return (
+    <>
     <div className="modal-overlay">
       <div className={`card ${styles.modal}`}>
 
@@ -99,15 +102,20 @@ export default function ClaimRankModal({ photocard, userId, connection, onClose 
                           <img
                             src={picUrl}
                             alt={name}
+                            onClick={() => setViewAvatar({ src: picUrl, initial, name })}
                             style={{
                               width: 30, height: 30, borderRadius: '50%',
-                              objectFit: 'cover', flexShrink: 0,
+                              objectFit: 'cover', flexShrink: 0, cursor: 'pointer',
                               border: isMe ? '2px solid var(--rose)' : '1.5px solid var(--card-border)',
                             }}
                             onError={(e) => { e.target.style.display = 'none'; }}
                           />
                         ) : (
-                          <div className="avatar" style={{ width: 30, height: 30, fontSize: '0.72rem', flexShrink: 0 }}>
+                          <div
+                            className="avatar"
+                            onClick={() => setViewAvatar({ src: null, initial, name })}
+                            style={{ width: 30, height: 30, fontSize: '0.72rem', flexShrink: 0, cursor: 'pointer' }}
+                          >
                             {initial}
                           </div>
                         )}
@@ -144,5 +152,15 @@ export default function ClaimRankModal({ photocard, userId, connection, onClose 
         )}
       </div>
     </div>
+
+      {viewAvatar && (
+        <AvatarViewModal
+          src={viewAvatar.src}
+          initial={viewAvatar.initial}
+          name={viewAvatar.name}
+          onClose={() => setViewAvatar(null)}
+        />
+      )}
+    </>
   );
 }
