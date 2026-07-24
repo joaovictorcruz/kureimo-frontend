@@ -677,7 +677,7 @@ export default function SetPage() {
                   )}
                   <button className="btn btn-secondary btn-sm" onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
-                    toast.success('Link copiado!');
+                    toast.success('Link copiado! 🔗');
                   }} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <LinkIcon size={13} strokeWidth={2} /> Link
                   </button>
@@ -985,8 +985,8 @@ function MemberRow({ pc, phase, claimed, claiming, shake, userId, userUsername, 
         <div className={styles.blurOverlay}>
           <span className={styles.blurMsg} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             {phase === 'streaming'
-              ? <><Clock size={13} strokeWidth={2} /> Preparando...</>
-              : <><Lock size={13} strokeWidth={2} /> Aguardando abertura</>
+              ? <><Clock size={15} strokeWidth={2} /> Preparando...</>
+              : <><Lock size={15} strokeWidth={2} /> Aguardando abertura</>
             }
           </span>
         </div>
@@ -1040,17 +1040,17 @@ function MemberRow({ pc, phase, claimed, claiming, shake, userId, userUsername, 
         }
       >
         {claiming ? (
-          <Loader2 size={14} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+          <Loader2 size={18} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
         ) : isGomBlocked ? (
-          <X size={14} strokeWidth={2.5} style={{ color: 'var(--gray)' }} />
+          <X size={18} strokeWidth={2.5} style={{ color: 'var(--gray)' }} />
         ) : isClosed ? (
-          <Lock size={14} strokeWidth={2} />
+          <Lock size={18} strokeWidth={2} />
         ) : canUnclaim ? (
-          <HeartCrack size={15} strokeWidth={2} />
+          <HeartCrack size={19} strokeWidth={2} />
         ) : claimed ? (
-          <Check size={15} strokeWidth={2.5} />
+          <Check size={19} strokeWidth={2.5} />
         ) : (
-          <Heart size={15} strokeWidth={2} />
+          <Heart size={19} strokeWidth={2} />
         )}
       </button>
     </div>

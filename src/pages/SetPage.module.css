@@ -289,7 +289,7 @@
 /* Hidden placeholders (blurred) */
 .memberNameHidden {
   display: block;
-  height: 12px;
+  height: 15px;
   width: 60%;
   border-radius: 6px;
   background: rgba(200,190,210,0.25);
@@ -297,11 +297,11 @@
 
 .memberVersionHidden {
   display: block;
-  height: 9px;
+  height: 11px;
   width: 40%;
   border-radius: 5px;
   background: rgba(200,190,210,0.15);
-  margin-top: 5px;
+  margin-top: 6px;
 }
 
 /* GOM bar */
@@ -331,7 +331,7 @@
 }
 
 .memberListTitle {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: var(--ink-soft);
   letter-spacing: 0.03em;
@@ -339,14 +339,14 @@
 }
 
 .memberListCount {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: var(--gray);
 }
 
 .memberList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   max-height: calc(100vh - 160px);
   overflow-y: auto;
   padding-right: 4px;
@@ -365,8 +365,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 15px;
+  padding: 18px 20px;
   background: rgba(255,255,255,0.78);
   border: 1.5px solid var(--card-border);
   border-radius: var(--radius-sm);
@@ -445,7 +445,7 @@
 }
 
 .blurMsg {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   font-weight: 800;
   color: var(--ink-soft);
   letter-spacing: 0.02em;
@@ -461,7 +461,7 @@
 
 .memberName {
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 1.15rem;
   color: var(--ink-soft);
   white-space: nowrap;
   overflow: hidden;
@@ -469,7 +469,7 @@
 }
 
 .memberVersion {
-  font-size: 0.75rem;
+  font-size: 0.95rem;
   color: var(--gray);
   white-space: nowrap;
   overflow: hidden;
@@ -478,24 +478,24 @@
 
 .memberTags {
   display: flex;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-top: 4px;
+  margin-top: 5px;
 }
 
 .claimCountTag {
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-pill);
   background: var(--blush-light);
   color: var(--ink-soft);
 }
 
 .myPosTag {
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-pill);
   background: var(--rose-light);
   color: var(--rose-dark);
@@ -504,15 +504,15 @@
 /* Claim circle button */
 .claimCircle {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: 2.5px solid var(--card-border);
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   cursor: pointer;
   transition: all 0.18s;
   color: var(--gray);

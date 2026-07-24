@@ -52,18 +52,23 @@ export default function ImageCropModal({
     setReady(true);
   };
 
-  // ── Nunca deixa a imagem menor que o frame nem revelar espaço vazio ──
+  // ── Só evita sumir a imagem de vista — não força mais "cobrir a moldura inteira",
+  //     senão (como o encaixe inicial já cobre exatamente) não sobrava espaço pra encolher ──
   const clampBox = useCallback((b, fw, fh) => {
     let { x, y, w, h } = b;
-    const minSize = 30;
+    const minSize = 40;
     if (w < minSize) w = minSize;
     if (h < minSize) h = minSize;
-    if (w < fw) w = fw;
-    if (h < fh) h = fh;
-    if (x > 0) x = 0;
-    if (y > 0) y = 0;
-    if (x + w < fw) x = fw - w;
-    if (y + h < fh) y = fh - h;
+    const maxW = fw * 6;
+    const maxH = fh * 6;
+    if (w > maxW) w = maxW;
+    if (h > maxH) h = maxH;
+    // mantém pelo menos um pedaço da imagem visível dentro da moldura
+    const minVisible = 24;
+    if (x > fw - minVisible) x = fw - minVisible;
+    if (y > fh - minVisible) y = fh - minVisible;
+    if (x + w < minVisible) x = minVisible - w;
+    if (y + h < minVisible) y = minVisible - h;
     return { x, y, w, h };
   }, []);
 

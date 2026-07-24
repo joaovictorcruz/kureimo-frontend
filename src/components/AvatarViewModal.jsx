@@ -29,10 +29,11 @@ export default function AvatarViewModal({
         className="card"
         style={{
           width: '100%',
-          maxWidth: 340,
+          maxWidth: 360,
           padding: 28,
           textAlign: 'center',
           animation: 'scale-in 0.22s ease',
+          boxSizing: 'border-box',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -79,11 +80,20 @@ export default function AvatarViewModal({
         )}
 
         {editable ? (
-          <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onResize} disabled={!src}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 22, width: '100%' }}>
+            <button
+              className="btn btn-secondary"
+              style={{ flex: 1, minWidth: 0, padding: '11px 8px', fontSize: '0.86rem' }}
+              onClick={onResize}
+              disabled={!src}
+            >
               Redimensionar
             </button>
-            <button className="btn btn-primary" style={{ flex: 1 }} onClick={onChangeImage}>
+            <button
+              className="btn btn-primary"
+              style={{ flex: 1, minWidth: 0, padding: '11px 8px', fontSize: '0.86rem' }}
+              onClick={onChangeImage}
+            >
               Alterar foto
             </button>
           </div>
