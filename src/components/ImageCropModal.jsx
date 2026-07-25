@@ -37,13 +37,31 @@ export default function ImageCropModal({
   const [rendering, setRendering] = useState(false);
   const [ready, setReady] = useState(false);
 
+  // ── Alças ficam um pouco fora da moldura visível pra sempre estarem
+  //     alcançáveis — só que isso só funciona se a área que "escuta" cliques
+  //     também cobrir essa faixa. Por isso o frame tem `padding: HANDLE_MARGIN`
+  //     (box-sizing content-box: o padding fica FORA do tamanho especificado,
+  //     então a proporção da imagem final não é afetada) — a getBoundingClientRect()
+  //     do frame já inclui esse padding, e por isso é sempre subtraído abaixo. ──
+  const HANDLE_MARGIN = 20;
+
+  const getFrameRect = () => {
+    const r = frameRef.current.getBoundingClientRect();
+    return {
+      left: r.left + HANDLE_MARGIN,
+      top: r.top + HANDLE_MARGIN,
+      width: r.width - HANDLE_MARGIN * 2,
+      height: r.height - HANDLE_MARGIN * 2,
+    };
+  };
+
   // ── Quando a imagem carrega: centraliza cobrindo o frame inteiro (estilo "cover") ──
   const handleImgLoad = () => {
     const img = imgRef.current;
     if (!img || !frameRef.current) return;
     const natW = img.naturalWidth;
     const natH = img.naturalHeight;
-    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
+    const { width: fw, height: fh } = getFrameRect();
 
     const scale = Math.max(fw / natW, fh / natH);
     const w = natW * scale;
@@ -78,7 +96,6 @@ export default function ImageCropModal({
   //     mesmo quando a imagem é bem maior e o canto real dela está longe daqui.
   //     O arrasto usa a posição do MOUSE (delta), não a da alça, então isso não
   //     afeta o redimensionamento em si, só onde a bolinha fica visível/clicável. ──
-  const HANDLE_MARGIN = 20;
   const clampHandleCoord = (v, max) => Math.max(-HANDLE_MARGIN, Math.min(max + HANDLE_MARGIN, v));
 
   const getHandlePoints = (b, fw, fh) => {
@@ -113,7 +130,7 @@ export default function ImageCropModal({
   };
 
   const toFrameCoords = (e) => {
-    const rect = frameRef.current.getBoundingClientRect();
+    const rect = getFrameRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return { x: clientX - rect.left, y: clientY - rect.top };
@@ -123,7 +140,7 @@ export default function ImageCropModal({
     if (!imgBox || !frameRef.current) return;
     e.preventDefault();
     const { x, y } = toFrameCoords(e);
-    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
+    const { width: fw, height: fh } = getFrameRect();
     const mode = getHandleAt(x, y, imgBox, fw, fh);
     if (!mode) return;
     dragRef.current = { mode, startX: x, startY: y, origBox: { ...imgBox } };
@@ -136,7 +153,7 @@ export default function ImageCropModal({
     const { mode, startX, startY, origBox: o } = dragRef.current;
     const dx = mx - startX;
     const dy = my - startY;
-    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
+    const { width: fw, height: fh } = getFrameRect();
 
     let next = { ...o };
 
@@ -172,7 +189,7 @@ export default function ImageCropModal({
   const getCursor = useCallback((e) => {
     if (!imgBox || !frameRef.current) return;
     const { x, y } = toFrameCoords(e);
-    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
+    const { width: fw, height: fh } = getFrameRect();
     const handle = getHandleAt(x, y, imgBox, fw, fh);
     const cursors = {
       nw: 'nwse-resize', se: 'nwse-resize',
@@ -192,7 +209,7 @@ export default function ImageCropModal({
     const img = imgRef.current;
     const natW = img.naturalWidth;
     const natH = img.naturalHeight;
-    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
+    const { width: fw, height: fh } = getFrameRect();
 
     // Escala tela → natural, por eixo (podem ser diferentes, já que a imagem pode estar esticada)
     const scaleX = natW / imgBox.w;
@@ -239,8 +256,8 @@ export default function ImageCropModal({
     const pos = getHandlePoints(b, frameSize.w, frameSize.h)[name];
     return {
       position: 'absolute',
-      left: pos.x - 9,
-      top: pos.y - 9,
+      left: HANDLE_MARGIN + pos.x - 9,
+      top: HANDLE_MARGIN + pos.y - 9,
       width: 18,
       height: 18,
       background: 'white',
@@ -289,6 +306,8 @@ export default function ImageCropModal({
               width: shape === 'circle' ? 260 : '100%',
               maxWidth: '100%',
               aspectRatio: String(defaultAspect),
+              padding: HANDLE_MARGIN,
+              boxSizing: 'content-box',
               userSelect: 'none',
               touchAction: 'none',
             }}
@@ -296,11 +315,13 @@ export default function ImageCropModal({
             onPointerMove={getCursor}
             onTouchStart={onPointerDown}
           >
-            {/* Viewport clipado — só o que está aqui dentro entra no resultado final */}
+            {/* Viewport clipado — só o que está aqui dentro entra no resultado final.
+                inset = HANDLE_MARGIN pra alinhar com a caixa de conteúdo (a moldura de
+                verdade), já que o container posicionado inclui o padding também. */}
             <div
               style={{
                 position: 'absolute',
-                inset: 0,
+                inset: HANDLE_MARGIN,
                 overflow: 'hidden',
                 borderRadius: shape === 'circle' ? '50%' : 8,
                 background: '#0d0518',
@@ -338,11 +359,11 @@ export default function ImageCropModal({
               )}
             </div>
 
-            {/* Borda + alças — ficam FORA do clip, pra nunca sumir mesmo com a imagem ampliada */}
+            {/* Borda — mesmo inset acima, fica exatamente na borda da moldura real */}
             <div
               style={{
                 position: 'absolute',
-                inset: 0,
+                inset: HANDLE_MARGIN,
                 border: '2px solid white',
                 borderRadius: shape === 'circle' ? '50%' : 8,
                 boxSizing: 'border-box',
