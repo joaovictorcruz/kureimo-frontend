@@ -32,6 +32,7 @@ export default function ImageCropModal({
 
   // Posição/tamanho da IMAGEM em pixels de tela, relativos ao frame
   const [imgBox, setImgBox] = useState(null); // { x, y, w, h }
+  const [frameSize, setFrameSize] = useState(null); // { w, h } — medido quando a imagem carrega
   const dragRef = useRef(null); // { mode, startX, startY, origBox }
   const [rendering, setRendering] = useState(false);
   const [ready, setReady] = useState(false);
@@ -49,6 +50,7 @@ export default function ImageCropModal({
     const h = natH * scale;
 
     setImgBox({ x: (fw - w) / 2, y: (fh - h) / 2, w, h });
+    setFrameSize({ w: fw, h: fh });
     setReady(true);
   };
 
@@ -72,23 +74,39 @@ export default function ImageCropModal({
     return { x, y, w, h };
   }, []);
 
+  // ── Pontos das alças, sempre presos numa faixa alcançável perto da moldura —
+  //     mesmo quando a imagem é bem maior e o canto real dela está longe daqui.
+  //     O arrasto usa a posição do MOUSE (delta), não a da alça, então isso não
+  //     afeta o redimensionamento em si, só onde a bolinha fica visível/clicável. ──
+  const HANDLE_MARGIN = 20;
+  const clampHandleCoord = (v, max) => Math.max(-HANDLE_MARGIN, Math.min(max + HANDLE_MARGIN, v));
+
+  const getHandlePoints = (b, fw, fh) => {
+    const left   = clampHandleCoord(b.x, fw);
+    const right  = clampHandleCoord(b.x + b.w, fw);
+    const top    = clampHandleCoord(b.y, fh);
+    const bottom = clampHandleCoord(b.y + b.h, fh);
+    const midX   = clampHandleCoord(b.x + b.w / 2, fw);
+    const midY   = clampHandleCoord(b.y + b.h / 2, fh);
+    return {
+      nw: { x: left,  y: top },
+      n:  { x: midX,  y: top },
+      ne: { x: right, y: top },
+      e:  { x: right, y: midY },
+      se: { x: right, y: bottom },
+      s:  { x: midX,  y: bottom },
+      sw: { x: left,  y: bottom },
+      w:  { x: left,  y: midY },
+    };
+  };
+
   // ── Detecta em qual alça (ou "mover") o ponteiro está ──
-  const getHandleAt = (mx, my, b) => {
+  const getHandleAt = (mx, my, b, fw, fh) => {
     const HIT = 14;
-    const midX = b.x + b.w / 2;
-    const midY = b.y + b.h / 2;
-    const points = [
-      { name: 'nw', px: b.x,       py: b.y },
-      { name: 'ne', px: b.x + b.w, py: b.y },
-      { name: 'sw', px: b.x,       py: b.y + b.h },
-      { name: 'se', px: b.x + b.w, py: b.y + b.h },
-      { name: 'n',  px: midX,      py: b.y },
-      { name: 's',  px: midX,      py: b.y + b.h },
-      { name: 'w',  px: b.x,       py: midY },
-      { name: 'e',  px: b.x + b.w, py: midY },
-    ];
-    for (const p of points) {
-      if (Math.abs(mx - p.px) < HIT && Math.abs(my - p.py) < HIT) return p.name;
+    const points = getHandlePoints(b, fw, fh);
+    for (const name of Object.keys(points)) {
+      const p = points[name];
+      if (Math.abs(mx - p.x) < HIT && Math.abs(my - p.y) < HIT) return name;
     }
     if (mx > b.x && mx < b.x + b.w && my > b.y && my < b.y + b.h) return 'move';
     return null;
@@ -102,10 +120,11 @@ export default function ImageCropModal({
   };
 
   const onPointerDown = (e) => {
-    if (!imgBox) return;
+    if (!imgBox || !frameRef.current) return;
     e.preventDefault();
     const { x, y } = toFrameCoords(e);
-    const mode = getHandleAt(x, y, imgBox);
+    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
+    const mode = getHandleAt(x, y, imgBox, fw, fh);
     if (!mode) return;
     dragRef.current = { mode, startX: x, startY: y, origBox: { ...imgBox } };
   };
@@ -153,7 +172,8 @@ export default function ImageCropModal({
   const getCursor = useCallback((e) => {
     if (!imgBox || !frameRef.current) return;
     const { x, y } = toFrameCoords(e);
-    const handle = getHandleAt(x, y, imgBox);
+    const { width: fw, height: fh } = frameRef.current.getBoundingClientRect();
+    const handle = getHandleAt(x, y, imgBox, fw, fh);
     const cursors = {
       nw: 'nwse-resize', se: 'nwse-resize',
       ne: 'nesw-resize', sw: 'nesw-resize',
@@ -215,23 +235,12 @@ export default function ImageCropModal({
   const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   const handleStyle = (name) => {
     const b = imgBox;
-    if (!b) return { display: 'none' };
-    const midX = b.x + b.w / 2;
-    const midY = b.y + b.h / 2;
-    const pos = {
-      nw: { left: b.x,       top: b.y },
-      n:  { left: midX,      top: b.y },
-      ne: { left: b.x + b.w, top: b.y },
-      e:  { left: b.x + b.w, top: midY },
-      se: { left: b.x + b.w, top: b.y + b.h },
-      s:  { left: midX,      top: b.y + b.h },
-      sw: { left: b.x,       top: b.y + b.h },
-      w:  { left: b.x,       top: midY },
-    }[name];
+    if (!b || !frameSize) return { display: 'none' };
+    const pos = getHandlePoints(b, frameSize.w, frameSize.h)[name];
     return {
       position: 'absolute',
-      left: pos.left - 9,
-      top: pos.top - 9,
+      left: pos.x - 9,
+      top: pos.y - 9,
       width: 18,
       height: 18,
       background: 'white',
