@@ -83,7 +83,7 @@ export default function AvatarViewModal({
           <div style={{ display: 'flex', gap: 10, marginTop: 22, width: '100%' }}>
             <button
               className="btn btn-secondary"
-              style={{ flex: 1, minWidth: 0, padding: '11px 8px', fontSize: '0.86rem' }}
+              style={{ flex: 1, minWidth: 0, padding: '11px 8px', fontSize: '0.86rem', justifyContent: 'center' }}
               onClick={onResize}
               disabled={!src}
             >
@@ -91,7 +91,7 @@ export default function AvatarViewModal({
             </button>
             <button
               className="btn btn-primary"
-              style={{ flex: 1, minWidth: 0, padding: '11px 8px', fontSize: '0.86rem' }}
+              style={{ flex: 1, minWidth: 0, padding: '11px 8px', fontSize: '0.86rem', justifyContent: 'center' }}
               onClick={onChangeImage}
             >
               Alterar foto

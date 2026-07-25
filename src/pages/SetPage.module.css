@@ -289,7 +289,7 @@
 /* Hidden placeholders (blurred) */
 .memberNameHidden {
   display: block;
-  height: 15px;
+  height: 12px;
   width: 60%;
   border-radius: 6px;
   background: rgba(200,190,210,0.25);
@@ -297,11 +297,11 @@
 
 .memberVersionHidden {
   display: block;
-  height: 11px;
+  height: 9px;
   width: 40%;
   border-radius: 5px;
   background: rgba(200,190,210,0.15);
-  margin-top: 6px;
+  margin-top: 5px;
 }
 
 /* GOM bar */
@@ -331,7 +331,7 @@
 }
 
 .memberListTitle {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: var(--ink-soft);
   letter-spacing: 0.03em;
@@ -339,14 +339,14 @@
 }
 
 .memberListCount {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--gray);
 }
 
 .memberList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   max-height: calc(100vh - 160px);
   overflow-y: auto;
   padding-right: 4px;
@@ -365,8 +365,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 18px 20px;
+  gap: 12px;
+  padding: 14px 16px;
   background: rgba(255,255,255,0.78);
   border: 1.5px solid var(--card-border);
   border-radius: var(--radius-sm);
@@ -445,7 +445,7 @@
 }
 
 .blurMsg {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 800;
   color: var(--ink-soft);
   letter-spacing: 0.02em;
@@ -461,7 +461,7 @@
 
 .memberName {
   font-weight: 800;
-  font-size: 1.15rem;
+  font-size: 0.9rem;
   color: var(--ink-soft);
   white-space: nowrap;
   overflow: hidden;
@@ -469,7 +469,7 @@
 }
 
 .memberVersion {
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   color: var(--gray);
   white-space: nowrap;
   overflow: hidden;
@@ -478,24 +478,24 @@
 
 .memberTags {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
-  margin-top: 5px;
+  margin-top: 4px;
 }
 
 .claimCountTag {
-  font-size: 0.82rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: var(--radius-pill);
   background: var(--blush-light);
   color: var(--ink-soft);
 }
 
 .myPosTag {
-  font-size: 0.82rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: var(--radius-pill);
   background: var(--rose-light);
   color: var(--rose-dark);
@@ -504,15 +504,15 @@
 /* Claim circle button */
 .claimCircle {
   flex-shrink: 0;
-  width: 52px;
-  height: 52px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 2.5px solid var(--card-border);
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.18s;
   color: var(--gray);
@@ -592,4 +592,75 @@
   transform: none;
   border-color: var(--card-border);
   box-shadow: none;
+}
+
+/* Em telas bem largas (ex: monitores/notebooks grandes), a coluna da imagem
+   cresce (é fluida) mas o texto da lista de membros ficava com tamanho fixo
+   pequeno por comparação. Esse bloco só entra em telas largas — no mobile e
+   no desktop "normal" nada muda. */
+@media (min-width: 1400px) {
+  .memberList {
+    gap: 10px;
+  }
+
+  .memberRow {
+    gap: 15px;
+    padding: 18px 20px;
+  }
+
+  .memberListTitle {
+    font-size: 0.95rem;
+  }
+
+  .memberListCount {
+    font-size: 0.85rem;
+  }
+
+  .memberName {
+    font-size: 1.15rem;
+  }
+
+  .memberVersion {
+    font-size: 0.95rem;
+  }
+
+  .memberTags {
+    gap: 6px;
+    margin-top: 5px;
+  }
+
+  .claimCountTag,
+  .myPosTag {
+    font-size: 0.82rem;
+    padding: 3px 10px;
+  }
+
+  .claimCircle {
+    width: 52px;
+    height: 52px;
+    font-size: 1.4rem;
+  }
+
+  .claimCircle svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+
+  .blurMsg {
+    font-size: 0.9rem;
+  }
+
+  .blurMsg svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .memberNameHidden {
+    height: 15px;
+  }
+
+  .memberVersionHidden {
+    height: 11px;
+    margin-top: 6px;
+  }
 }
