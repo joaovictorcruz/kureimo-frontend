@@ -64,21 +64,33 @@ export default function ImageCropModal({
     dragRef.current = null;
   }, [src]);
 
-  // ── Quando a imagem carrega: centraliza cobrindo o frame inteiro (estilo "cover") ──
+  // ── Quando a imagem carrega: centraliza cobrindo o frame inteiro (estilo "cover").
+  //     Adia a medição pro próximo frame — a imagem (objectURL) às vezes carrega tão
+  //     rápido que o layout do frame (aspect-ratio) ainda não tinha terminado, e aí a
+  //     medição vinha errada, fazendo a imagem cair pro tamanho real dela sem escala. ──
   const handleImgLoad = () => {
-    const img = imgRef.current;
-    if (!img || !frameRef.current) return;
-    const natW = img.naturalWidth;
-    const natH = img.naturalHeight;
-    const { width: fw, height: fh } = getFrameRect();
+    const measure = (attemptsLeft) => {
+      const img = imgRef.current;
+      if (!img || !frameRef.current) return;
+      const { width: fw, height: fh } = getFrameRect();
 
-    const scale = Math.max(fw / natW, fh / natH);
-    const w = natW * scale;
-    const h = natH * scale;
+      if ((!fw || !fh) && attemptsLeft > 0) {
+        requestAnimationFrame(() => measure(attemptsLeft - 1));
+        return;
+      }
 
-    setImgBox({ x: (fw - w) / 2, y: (fh - h) / 2, w, h });
-    setFrameSize({ w: fw, h: fh });
-    setReady(true);
+      const natW = img.naturalWidth;
+      const natH = img.naturalHeight;
+      const scale = Math.max(fw / natW, fh / natH);
+      const w = natW * scale;
+      const h = natH * scale;
+
+      setImgBox({ x: (fw - w) / 2, y: (fh - h) / 2, w, h });
+      setFrameSize({ w: fw, h: fh });
+      setReady(true);
+    };
+
+    requestAnimationFrame(() => measure(5));
   };
 
   // ── Só evita sumir a imagem de vista — não força mais "cobrir a moldura inteira",
@@ -184,12 +196,27 @@ export default function ImageCropModal({
     if (mode === 'move') {
       next.x = o.x + dx;
       next.y = o.y + dy;
+    } else if (mode.length === 2) {
+      // Alça de canto: redimensiona proporcionalmente (mantém a proporção da
+      // imagem, sem distorcer), ancorada no canto oposto ao que está sendo arrastado
+      const signX = mode.includes('e') ? 1 : -1;
+      const signY = mode.includes('s') ? 1 : -1;
+      const avgDelta = (dx * signX + dy * signY) / 2;
+      const scale = Math.max(0.02, (o.w + avgDelta) / o.w);
+      const newW = o.w * scale;
+      const newH = o.h * scale;
+      const anchorX = signX === 1 ? o.x : o.x + o.w;
+      const anchorY = signY === 1 ? o.y : o.y + o.h;
+      next.w = newW;
+      next.h = newH;
+      next.x = signX === 1 ? anchorX : anchorX - newW;
+      next.y = signY === 1 ? anchorY : anchorY - newH;
     } else {
-      // Redimensiona livremente — largura e altura são independentes, sem travar proporção
-      if (mode.includes('e')) next.w = o.w + dx;
-      if (mode.includes('w')) { next.w = o.w - dx; next.x = o.x + dx; }
-      if (mode.includes('s')) next.h = o.h + dy;
-      if (mode.includes('n')) { next.h = o.h - dy; next.y = o.y + dy; }
+      // Alça de borda: só move o eixo correspondente — a outra dimensão fica travada
+      if (mode === 'e') next.w = o.w + dx;
+      if (mode === 'w') { next.w = o.w - dx; next.x = o.x + dx; }
+      if (mode === 's') next.h = o.h + dy;
+      if (mode === 'n') { next.h = o.h - dy; next.y = o.y + dy; }
     }
 
     setImgBox(clampBox(next, fw, fh));
@@ -315,7 +342,7 @@ export default function ImageCropModal({
               Ajustar imagem
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: 'var(--gray)' }}>
-              Arraste as bordas pra redimensionar livremente · Arraste dentro pra mover
+              Cantos redimensionam proporcionalmente · bordas esticam um lado só · arraste dentro pra mover
             </p>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onCancel} style={{ padding: '6px 10px' }}>✕</button>
