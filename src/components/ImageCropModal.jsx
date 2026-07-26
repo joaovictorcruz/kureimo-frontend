@@ -43,7 +43,7 @@ export default function ImageCropModal({
   //     (box-sizing content-box: o padding fica FORA do tamanho especificado,
   //     então a proporção da imagem final não é afetada) — a getBoundingClientRect()
   //     do frame já inclui esse padding, e por isso é sempre subtraído abaixo. ──
-  const HANDLE_MARGIN = 20;
+  const HANDLE_MARGIN = 28;
 
   const getFrameRect = () => {
     const r = frameRef.current.getBoundingClientRect();
@@ -108,12 +108,27 @@ export default function ImageCropModal({
   const clampHandleCoord = (v, max) => Math.max(-HANDLE_MARGIN, Math.min(max + HANDLE_MARGIN, v));
 
   const getHandlePoints = (b, fw, fh) => {
-    const left   = clampHandleCoord(b.x, fw);
-    const right  = clampHandleCoord(b.x + b.w, fw);
-    const top    = clampHandleCoord(b.y, fh);
-    const bottom = clampHandleCoord(b.y + b.h, fh);
-    const midX   = clampHandleCoord(b.x + b.w / 2, fw);
-    const midY   = clampHandleCoord(b.y + b.h / 2, fh);
+    let left   = clampHandleCoord(b.x, fw);
+    let right  = clampHandleCoord(b.x + b.w, fw);
+    let top    = clampHandleCoord(b.y, fh);
+    let bottom = clampHandleCoord(b.y + b.h, fh);
+
+    // Evita que duas alças opostas fiquem grudadas/sobrepostas — cada uma
+    // precisa de uma área própria pra ser clicável com folga
+    const MIN_GAP = 46;
+    if (right - left < MIN_GAP) {
+      const mid = (right + left) / 2;
+      left = mid - MIN_GAP / 2;
+      right = mid + MIN_GAP / 2;
+    }
+    if (bottom - top < MIN_GAP) {
+      const mid = (bottom + top) / 2;
+      top = mid - MIN_GAP / 2;
+      bottom = mid + MIN_GAP / 2;
+    }
+
+    const midX = (left + right) / 2;
+    const midY = (top + bottom) / 2;
     return {
       nw: { x: left,  y: top },
       n:  { x: midX,  y: top },
@@ -128,7 +143,7 @@ export default function ImageCropModal({
 
   // ── Detecta em qual alça (ou "mover") o ponteiro está ──
   const getHandleAt = (mx, my, b, fw, fh) => {
-    const HIT = 14;
+    const HIT = 20;
     const points = getHandlePoints(b, fw, fh);
     for (const name of Object.keys(points)) {
       const p = points[name];
@@ -265,12 +280,12 @@ export default function ImageCropModal({
     const pos = getHandlePoints(b, frameSize.w, frameSize.h)[name];
     return {
       position: 'absolute',
-      left: HANDLE_MARGIN + pos.x - 9,
-      top: HANDLE_MARGIN + pos.y - 9,
-      width: 18,
-      height: 18,
+      left: HANDLE_MARGIN + pos.x - 11,
+      top: HANDLE_MARGIN + pos.y - 11,
+      width: 22,
+      height: 22,
       background: 'white',
-      border: '2.5px solid var(--rose)',
+      border: '3px solid var(--rose)',
       borderRadius: '50%',
       boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
       zIndex: 10,
