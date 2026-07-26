@@ -55,6 +55,15 @@ export default function ImageCropModal({
     };
   };
 
+  // ── Reseta o estado sempre que a imagem (src) mudar — mesmo que o componente
+  //     seja reaproveitado sem desmontar entre duas sessões de recorte diferentes ──
+  useEffect(() => {
+    setImgBox(null);
+    setFrameSize(null);
+    setReady(false);
+    dragRef.current = null;
+  }, [src]);
+
   // ── Quando a imagem carrega: centraliza cobrindo o frame inteiro (estilo "cover") ──
   const handleImgLoad = () => {
     const img = imgRef.current;
