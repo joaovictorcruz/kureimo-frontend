@@ -137,7 +137,7 @@ export default function ProfilePage() {
     setUploadingAvatar(true);
     try {
       const formData = new FormData();
-      formData.append('file', blob, 'profile-pic.jpg');
+      formData.append('file', blob, 'profile-pic.png');
       await usersApi.updateProfilePic(user.id, formData);
       toast.success('Foto de perfil atualizada!');
       const updated = await usersApi.get(user.id);

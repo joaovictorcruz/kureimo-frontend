@@ -21,6 +21,7 @@ export default function ImageCropModal({
   shape = 'rect',
   aspect,
   crossOrigin,
+  bgColor,
   onConfirm,
   onCancel,
 }) {
@@ -292,12 +293,19 @@ export default function ImageCropModal({
       ctx.clip();
     }
 
+    // Se a imagem foi encolhida e sobrou "vão" na moldura, preenche com a cor
+    // de fundo do post em vez de deixar transparente/preto
+    if (bgColor) {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, outW, outH);
+    }
+
     ctx.drawImage(img, natCropX, natCropY, natCropW, natCropH, 0, 0, outW, outH);
 
     canvas.toBlob((blob) => {
       setRendering(false);
       onConfirm(blob);
-    }, 'image/jpeg', 0.9);
+    }, 'image/png');
   }, [imgBox, shape, onConfirm]);
 
   const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];

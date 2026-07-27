@@ -289,7 +289,7 @@ export default function EditSetModal({ set, onClose, onSaved }) {
       // 2. Se tiver nova imagem cropada, faz upload
       if (croppedBlob) {
         const formData = new FormData();
-        formData.append('file', croppedBlob, 'set-image.jpg');
+        formData.append('file', croppedBlob, 'set-image.png');
         try {
           await setsApi.updateImage(set.accessToken, formData);
         } catch {
@@ -384,6 +384,7 @@ export default function EditSetModal({ set, onClose, onSaved }) {
           shape="rect"
           aspect={16 / 9}
           crossOrigin={cropIsExisting ? 'anonymous' : undefined}
+          bgColor={bgColor}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
         />

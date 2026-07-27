@@ -292,7 +292,7 @@ export default function CreateSetModal({ onClose, onCreated }) {
       formData.append('backgroundColor', bgColor);
       formData.append('fontColor',       fontColor);
       formData.append('fontStyle',       fontStyle.value);
-      formData.append('image',           croppedBlob, 'set-image.jpg');
+      formData.append('image',           croppedBlob, 'set-image.png');
       if (form.description.trim()) formData.append('description', form.description.trim());
 
       const newSet = await setsApi.create(formData);
@@ -433,6 +433,7 @@ export default function CreateSetModal({ onClose, onCreated }) {
           src={cropSrc}
           shape="rect"
           aspect={16 / 9}
+          bgColor={bgColor}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
         />

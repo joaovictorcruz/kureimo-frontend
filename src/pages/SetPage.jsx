@@ -45,6 +45,20 @@ const FONT_MAP = {
   'Space Mono':         "'Space Mono', monospace",
 };
 
+// index.html só pré-carrega Nunito e DM Serif Display (as fontes padrão do app).
+// As demais só eram buscadas dinamicamente durante a criação/edição do set — por
+// isso, ao dar F5 direto na página do set, a fonte escolhida nunca era baixada e
+// caía no fallback genérico. Aplica-se o mesmo padrão de carregamento aqui.
+const loadedFonts = new Set(['Nunito', 'DM Serif Display']);
+function ensureFont(fontName) {
+  if (!fontName || loadedFonts.has(fontName) || fontName === 'Courier New') return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@400;700&display=swap`;
+  document.head.appendChild(link);
+  loadedFonts.add(fontName);
+}
+
 function sessionKey(token) { return `claimed_${token}`; }
 
 function getSessionClaimed(token) {
@@ -189,6 +203,7 @@ export default function SetPage() {
       );
       const enrichedSet = { ...data, photocards: enriched };
       setSet(enrichedSet);
+      ensureFont(enrichedSet.fontStyle);
 
       if (user) {
         const fromApi = new Set(
@@ -461,7 +476,7 @@ export default function SetPage() {
     setUploadingImg(true);
     try {
       const formData = new FormData();
-      formData.append('file', blob, 'set-image.jpg');
+      formData.append('file', blob, 'set-image.png');
       await setsApi.updateImage(token, formData);
       toast.success('Imagem atualizada!');
       fetchSet();
@@ -892,6 +907,7 @@ export default function SetPage() {
           shape="rect"
           aspect={16 / 9}
           crossOrigin={cropIsExisting ? 'anonymous' : undefined}
+          bgColor={bgColor}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
         />
