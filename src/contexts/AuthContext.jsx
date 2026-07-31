@@ -82,11 +82,22 @@ export function AuthProvider({ children }) {
     setProfilePicUrl(pic);
   };
 
-  const login = (returnTo) => {
+  // ── login ──
+  // firstScreen (opcional): 'register' para já abrir direto na tela de
+  // cadastro do Logto, em vez da tela de login padrão. Sempre passa pelo
+  // signIn() do SDK — nunca monta a URL do Logto na mão — porque é o SDK
+  // quem garante que o redirect_uri correto (o domínio atual + /callback)
+  // vai junto na requisição de autorização.
+  const login = (returnTo, firstScreen) => {
     if (typeof returnTo === 'string' && returnTo) {
       sessionStorage.setItem('kureimo_return_to', returnTo);
     }
-    signIn(`${window.location.origin}/callback`);
+    const redirectUri = `${window.location.origin}/callback`;
+    if (firstScreen) {
+      signIn({ redirectUri, firstScreen });
+    } else {
+      signIn(redirectUri);
+    }
   };
 
   const logout = async () => {

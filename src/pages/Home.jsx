@@ -5,11 +5,6 @@ import Logo from '../components/Logo';
 import { Zap, Trophy, Link2, Palette, Heart } from 'lucide-react';
 import styles from './Home.module.css';
 
-const LOGTO_APP_ID = import.meta.env.VITE_LOGTO_APP_ID;
-const LOGTO_ENDPOINT = import.meta.env.VITE_LOGTO_ENDPOINT;
-const LOGTO_REGISTER_URL = `${LOGTO_ENDPOINT}/register?app_id=${LOGTO_APP_ID}`;
-const LOGTO_LOGIN_URL    = `${LOGTO_ENDPOINT}/sign-in?app_id=${LOGTO_APP_ID}`;
-
 const FEATURES = [
   {
     icon: Zap,
@@ -34,7 +29,7 @@ const FEATURES = [
 ];
 
 export default function Home() {
-  const { user, isGom, loading: authLoading } = useAuth();
+  const { user, isGom, loading: authLoading, login } = useAuth();
   const [accessInput, setAccessInput] = useState('');
   const navigate = useNavigate();
 
@@ -75,12 +70,12 @@ export default function Home() {
 
             {!authLoading && !user && (
               <div className={styles.heroCtas}>
-                <a href={LOGTO_REGISTER_URL} className="btn btn-primary btn-lg">
+                <button type="button" className="btn btn-primary btn-lg" onClick={() => login(undefined, 'register')}>
                   Criar conta grátis
-                </a>
-                <a href={LOGTO_LOGIN_URL} className="btn btn-secondary btn-lg">
+                </button>
+                <button type="button" className="btn btn-secondary btn-lg" onClick={() => login()}>
                   Já tenho conta
-                </a>
+                </button>
               </div>
             )}
 
@@ -201,9 +196,9 @@ export default function Home() {
             <p style={{ color: 'var(--gray)', marginTop: 10, marginBottom: 32, fontSize: '0.95rem' }}>
               Crie sua conta grátis e nunca mais perca um photocard.
             </p>
-              <a href={LOGTO_REGISTER_URL} className="btn btn-primary btn-lg">
-                Começar agora
-              </a>
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => login(undefined, 'register')}>
+              Começar agora
+            </button>
           </div>
         </section>
       )}
