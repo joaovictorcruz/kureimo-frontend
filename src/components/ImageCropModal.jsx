@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { RotateCcw } from 'lucide-react';
 
 /**
  * Compõe uma imagem (possivelmente com áreas transparentes, sobrando "vão" na
@@ -43,6 +44,15 @@ export function compositeWithBackground(blob, bgColor) {
   });
 }
 
+// Enquadramento inicial "cover": centraliza a imagem cobrindo o frame inteiro.
+// Usado tanto no primeiro carregamento quanto no botão de redefinir.
+function computeCoverBox(natW, natH, fw, fh) {
+  const scale = Math.max(fw / natW, fh / natH);
+  const w = natW * scale;
+  const h = natH * scale;
+  return { x: (fw - w) / 2, y: (fh - h) / 2, w, h };
+}
+
 /**
  * ImageCropModal
  *
@@ -84,9 +94,19 @@ export default function ImageCropModal({
   // Posição/tamanho da IMAGEM em pixels de tela, relativos ao frame
   const [imgBox, setImgBox] = useState(null); // { x, y, w, h }
   const [frameSize, setFrameSize] = useState(null); // { w, h } — medido quando a imagem carrega
+  // Espelha imgBox num ref, lido durante o arrasto — evita que onPointerMove
+  // precise de imgBox no closure (o que forçava recriar a função — e
+  // reanexar os listeners da window — a cada frame do arrasto, cenário onde
+  // o toque em celulares é mais sensível a perder eventos no meio do gesto).
+  const imgBoxRef = useRef(null);
   const dragRef = useRef(null); // { mode, startX, startY, origBox }
   const [rendering, setRendering] = useState(false);
   const [ready, setReady] = useState(false);
+
+  const updateImgBox = (box) => {
+    imgBoxRef.current = box;
+    setImgBox(box);
+  };
 
   // ── Alças ficam um pouco fora da moldura visível pra sempre estarem
   //     alcançáveis — só que isso só funciona se a área que "escuta" cliques
@@ -109,7 +129,7 @@ export default function ImageCropModal({
   // ── Reseta o estado sempre que a imagem (src) mudar — mesmo que o componente
   //     seja reaproveitado sem desmontar entre duas sessões de recorte diferentes ──
   useEffect(() => {
-    setImgBox(null);
+    updateImgBox(null);
     setFrameSize(null);
     setReady(false);
     dragRef.current = null;
@@ -130,18 +150,22 @@ export default function ImageCropModal({
         return;
       }
 
-      const natW = img.naturalWidth;
-      const natH = img.naturalHeight;
-      const scale = Math.max(fw / natW, fh / natH);
-      const w = natW * scale;
-      const h = natH * scale;
-
-      setImgBox({ x: (fw - w) / 2, y: (fh - h) / 2, w, h });
+      updateImgBox(computeCoverBox(img.naturalWidth, img.naturalHeight, fw, fh));
       setFrameSize({ w: fw, h: fh });
       setReady(true);
     };
 
     requestAnimationFrame(() => measure(5));
+  };
+
+  // ── Redefinir: volta a imagem pro enquadramento inicial (cover, centralizada),
+  //     desfazendo qualquer arrasto/redimensionamento acidental sem perder
+  //     nada da imagem original — ela nunca foi alterada, só a posição dela. ──
+  const handleReset = () => {
+    const img = imgRef.current;
+    if (!img || !frameRef.current) return;
+    const { width: fw, height: fh } = getFrameRect();
+    updateImgBox(computeCoverBox(img.naturalWidth, img.naturalHeight, fw, fh));
   };
 
   // ── Só evita sumir a imagem de vista — não força mais "cobrir a moldura inteira",
@@ -218,23 +242,27 @@ export default function ImageCropModal({
 
   const toFrameCoords = (e) => {
     const rect = getFrameRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
+  // ── Arrasto: unificado em Pointer Events (cobre mouse, touch e caneta com
+  //     a mesma API). Não duplica mais em onTouchStart/touchmove/touchend —
+  //     ter os dois sistemas escutando o mesmo gesto ao mesmo tempo é o que
+  //     causava o comportamento errático no celular (a imagem "voltando"
+  //     pro canto em vez de ficar onde foi solta). ──
   const onPointerDown = (e) => {
-    if (!imgBox || !frameRef.current) return;
+    if (!imgBoxRef.current || !frameRef.current) return;
     e.preventDefault();
     const { x, y } = toFrameCoords(e);
     const { width: fw, height: fh } = getFrameRect();
-    const mode = getHandleAt(x, y, imgBox, fw, fh);
+    const mode = getHandleAt(x, y, imgBoxRef.current, fw, fh);
     if (!mode) return;
-    dragRef.current = { mode, startX: x, startY: y, origBox: { ...imgBox } };
+    frameRef.current.setPointerCapture?.(e.pointerId);
+    dragRef.current = { mode, startX: x, startY: y, origBox: { ...imgBoxRef.current } };
   };
 
   const onPointerMove = useCallback((e) => {
-    if (!dragRef.current || !imgBox || !frameRef.current) return;
+    if (!dragRef.current || !imgBoxRef.current || !frameRef.current) return;
     e.preventDefault();
     const { x: mx, y: my } = toFrameCoords(e);
     const { mode, startX, startY, origBox: o } = dragRef.current;
@@ -270,23 +298,21 @@ export default function ImageCropModal({
       if (mode === 'n') { next.h = o.h - dy; next.y = o.y + dy; }
     }
 
-    setImgBox(clampBox(next, fw, fh));
-  }, [imgBox, clampBox]);
+    updateImgBox(clampBox(next, fw, fh));
+  }, [clampBox]);
 
-  const onPointerUp = () => { dragRef.current = null; };
+  const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
 
   useEffect(() => {
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('touchmove', onPointerMove, { passive: false });
-    window.addEventListener('touchend', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('touchmove', onPointerMove);
-      window.removeEventListener('touchend', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
-  }, [onPointerMove]);
+  }, [onPointerMove, onPointerUp]);
 
   const getCursor = useCallback((e) => {
     if (!imgBox || !frameRef.current) return;
@@ -400,7 +426,18 @@ export default function ImageCropModal({
               Cantos redimensionam proporcionalmente · bordas esticam um lado só · arraste dentro pra mover
             </p>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={onCancel} style={{ padding: '6px 10px' }}>✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={handleReset}
+              disabled={!ready}
+              title="Redefinir posição e tamanho"
+              style={{ padding: '6px 10px' }}
+            >
+              <RotateCcw size={15} strokeWidth={2} />
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={onCancel} style={{ padding: '6px 10px' }}>✕</button>
+          </div>
         </div>
 
         {/* Área de ajuste */}
@@ -419,7 +456,6 @@ export default function ImageCropModal({
             }}
             onPointerDown={onPointerDown}
             onPointerMove={getCursor}
-            onTouchStart={onPointerDown}
           >
             {/* Viewport clipado — só o que está aqui dentro entra no resultado final.
                 inset = HANDLE_MARGIN pra alinhar com a caixa de conteúdo (a moldura de
