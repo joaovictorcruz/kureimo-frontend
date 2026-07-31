@@ -51,6 +51,13 @@ export default function ProfilePage() {
 
   const [view, setView]                       = useState('info'); // 'info' | 'edit' | 'overview'
   const [cropSrc, setCropSrc]                 = useState(null);
+  // objectURL da foto original enviada nesta sessão do navegador — mantido
+  // (não revogado) enquanto a página não recarrega, pra permitir reabrir
+  // "Redimensionar" sempre a partir da foto cheia, sem recortar um recorte
+  // anterior. Se a página for recarregada, ou a foto atual vier de uma
+  // sessão passada, esse valor fica null e cai de volta pro comportamento
+  // anterior (recorta a partir da foto já hospedada).
+  const [originalAvatarSrc, setOriginalAvatarSrc] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [viewAvatar, setViewAvatar] = useState(null); // { src, initial, name } — foto de um reviewer
@@ -74,6 +81,14 @@ export default function ProfilePage() {
       phoneNumber: user.phoneNumber || '',
     });
   }, [user]);
+
+  // Revoga o objectURL da foto original retida sempre que ela for trocada
+  // por uma nova (ou ao desmontar a página) — mantém só uma viva por vez.
+  useEffect(() => {
+    return () => {
+      if (originalAvatarSrc) URL.revokeObjectURL(originalAvatarSrc);
+    };
+  }, [originalAvatarSrc]);
 
   const fetchOverviewReviews = async (p = 1) => {
     if (!user) return;
@@ -126,13 +141,19 @@ export default function ProfilePage() {
       e.target.value = '';
       return;
     }
-    if (cropSrc) URL.revokeObjectURL(cropSrc);
-    setCropSrc(URL.createObjectURL(file));
+    // Guarda a foto original — assim "Redimensionar" pode reabrir a partir
+    // dela depois, em vez de recortar o resultado já recortado.
+    const url = URL.createObjectURL(file);
+    setOriginalAvatarSrc(url);
+    setCropSrc(url);
     e.target.value = '';
   };
 
   const handleCropConfirm = async (blob) => {
-    URL.revokeObjectURL(cropSrc);
+    // Não revoga o cropSrc aqui de propósito: quando ele é o
+    // originalAvatarSrc, precisa continuar vivo pra um próximo
+    // "Redimensionar" — quem cuida de revogá-lo é o efeito acima, quando ele
+    // for substituído por um novo ou a página for fechada.
     setCropSrc(null);
     setUploadingAvatar(true);
     try {
@@ -150,7 +171,6 @@ export default function ProfilePage() {
   };
 
   const handleCropCancel = () => {
-    URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
   };
 
@@ -488,7 +508,7 @@ export default function ProfilePage() {
           initial={initial}
           name={user.username}
           editable
-          onResize={() => { setShowAvatarModal(false); setCropSrc(avatarUrl); }}
+          onResize={() => { setShowAvatarModal(false); setCropSrc(originalAvatarSrc || avatarUrl); }}
           onChangeImage={() => { setShowAvatarModal(false); avatarInputRef.current?.click(); }}
           onClose={() => setShowAvatarModal(false)}
         />

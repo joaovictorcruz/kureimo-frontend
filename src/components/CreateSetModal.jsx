@@ -189,7 +189,7 @@ function FontSelector({ value, onChange, previewText }) {
 }
 
 /* ─── ImageUploadField ─── */
-function ImageUploadField({ imagePreview, onFileSelected, onClear, required }) {
+function ImageUploadField({ imagePreview, hasOriginal, onFileSelected, onRecropCurrent, onClear, required }) {
   const inputRef = useRef();
   const handleChange = (e) => {
     const file = e.target.files?.[0];
@@ -210,10 +210,21 @@ function ImageUploadField({ imagePreview, onFileSelected, onClear, required }) {
           <button type="button" onClick={onClear} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={14} strokeWidth={2.5} />
           </button>
-          <button type="button" onClick={() => inputRef.current?.click()} style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Scissors size={12} strokeWidth={2} />
-            Recortar / Trocar
-          </button>
+          <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 6 }}>
+            {/* Recorta de novo a MESMA foto já escolhida (a original, não o
+                resultado já recortado) — só aparece se ainda temos a original
+                retida nesta sessão. */}
+            {hasOriginal && (
+              <button type="button" onClick={onRecropCurrent} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Scissors size={12} strokeWidth={2} />
+                Recortar
+              </button>
+            )}
+            <button type="button" onClick={() => inputRef.current?.click()} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ImageIcon size={12} strokeWidth={2} />
+              Nova imagem
+            </button>
+          </div>
         </div>
       ) : (
         <div onClick={() => inputRef.current?.click()} style={{ border: '2px dashed var(--card-border)', borderRadius: 'var(--radius-sm)', padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.5)', transition: 'border-color 0.15s, background 0.15s' }}
@@ -241,7 +252,12 @@ export default function CreateSetModal({ onClose, onCreated }) {
 
   const [form, setForm] = useState({ title: '', description: '', claimOpensAt: '' });
 
-  const [rawFile, setRawFile]           = useState(null);
+  // originalSrc = objectURL da foto ORIGINAL escolhida (mantido, não revogado
+  // após o recorte) — permite reabrir "Recortar" na mesma foto depois, sem
+  // precisar selecionar o arquivo de novo e sem recortar um recorte anterior.
+  // cropSrc = fonte que está sendo editada no ImageCropModal no momento
+  // (aponta pro mesmo valor de originalSrc, na prática).
+  const [originalSrc, setOriginalSrc]   = useState(null);
   const [cropSrc, setCropSrc]           = useState(null);
   const [croppedBlob, setCroppedBlob]   = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -252,31 +268,43 @@ export default function CreateSetModal({ onClose, onCreated }) {
 
   const setF = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
+  // Revoga o objectURL da foto original sempre que ela for trocada por uma
+  // nova, ou quando o modal for fechado/desmontado.
+  useEffect(() => {
+    return () => {
+      if (originalSrc) URL.revokeObjectURL(originalSrc);
+    };
+  }, [originalSrc]);
+
   const handleFileSelected = (file) => {
-    setRawFile(file);
-    if (cropSrc) URL.revokeObjectURL(cropSrc);
-    setCropSrc(URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    setOriginalSrc(url);
+    setCropSrc(url);
+  };
+
+  const handleRecropCurrent = () => {
+    if (!originalSrc) return;
+    setCropSrc(originalSrc);
   };
 
   const handleCropConfirm = (blob) => {
     setCroppedBlob(blob);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(URL.createObjectURL(blob));
-    URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
-    setRawFile(null);
+    // originalSrc é mantido de propósito — é o que permite o botão
+    // "Recortar" reabrir na mesma foto depois.
   };
 
   const handleCropCancel = () => {
-    URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
-    setRawFile(null);
   };
 
   const handleClearImage = () => {
     setCroppedBlob(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(null);
+    setOriginalSrc(null);
   };
 
   const handleSubmit = async () => {
@@ -339,7 +367,9 @@ export default function CreateSetModal({ onClose, onCreated }) {
 
               <ImageUploadField
                 imagePreview={imagePreview}
+                hasOriginal={!!originalSrc}
                 onFileSelected={handleFileSelected}
+                onRecropCurrent={handleRecropCurrent}
                 onClear={handleClearImage}
                 required
               />
