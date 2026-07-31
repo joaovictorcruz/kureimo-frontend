@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { setsApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
-import ImageCropModal from './ImageCropModal';
+import ImageCropModal, { compositeWithBackground } from './ImageCropModal';
 import {
   X,
   Image as ImageIcon,
@@ -286,13 +286,18 @@ export default function CreateSetModal({ onClose, onCreated }) {
 
     setLoading(true);
     try {
+      // Aplica a cor de fundo mais atual (a que está selecionada agora, no
+      // formulário) no "vão" da imagem — não a que estava selecionada no
+      // momento em que o recorte foi feito.
+      const finalImage = await compositeWithBackground(croppedBlob, bgColor);
+
       const formData = new FormData();
       formData.append('title',           form.title.trim());
       formData.append('claimOpensAt',    new Date(form.claimOpensAt).toISOString());
       formData.append('backgroundColor', bgColor);
       formData.append('fontColor',       fontColor);
       formData.append('fontStyle',       fontStyle.value);
-      formData.append('image',           croppedBlob, 'set-image.png');
+      formData.append('image',           finalImage, 'set-image.png');
       if (form.description.trim()) formData.append('description', form.description.trim());
 
       const newSet = await setsApi.create(formData);

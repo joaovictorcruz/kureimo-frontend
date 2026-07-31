@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { setsApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
-import ImageCropModal from './ImageCropModal';
+import ImageCropModal, { compositeWithBackground } from './ImageCropModal';
 
 const BG_PRESETS = [
   { label: 'Rosa',    value: '#F28695' },
@@ -286,10 +286,13 @@ export default function EditSetModal({ set, onClose, onSaved }) {
         fontStyle:       fontStyle.value,
       });
 
-      // 2. Se tiver nova imagem cropada, faz upload
+      // 2. Se tiver nova imagem cropada, faz upload — aplicando a cor de fundo
+      //    mais atual no "vão" da imagem, não a que estava selecionada no
+      //    momento em que o recorte foi feito.
       if (croppedBlob) {
+        const finalImage = await compositeWithBackground(croppedBlob, bgColor);
         const formData = new FormData();
-        formData.append('file', croppedBlob, 'set-image.png');
+        formData.append('file', finalImage, 'set-image.png');
         try {
           await setsApi.updateImage(set.accessToken, formData);
         } catch {

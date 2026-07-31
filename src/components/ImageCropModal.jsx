@@ -1,6 +1,49 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 /**
+ * Compõe uma imagem (possivelmente com áreas transparentes, sobrando "vão" na
+ * moldura) sobre um fundo sólido.
+ *
+ * Usado para aplicar a cor de fundo do post na imagem final do set — sempre
+ * com a cor MAIS ATUAL (a que está selecionada no momento de salvar), e não
+ * a cor que estava selecionada no momento em que o recorte em si foi feito.
+ * Isso evita que a imagem fique com uma cor "presa" de um estado antigo do
+ * formulário.
+ */
+export function compositeWithBackground(blob, bgColor) {
+  return new Promise((resolve, reject) => {
+    if (!blob || !bgColor) { resolve(blob); return; }
+
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      canvas.toBlob((finalBlob) => {
+        URL.revokeObjectURL(url);
+        if (finalBlob) resolve(finalBlob);
+        else reject(new Error('Falha ao compor a imagem final.'));
+      }, 'image/png');
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Falha ao carregar a imagem para composição.'));
+    };
+
+    img.src = url;
+  });
+}
+
+/**
  * ImageCropModal
  *
  * Modelo: a moldura (o quadro onde a imagem final vai aparecer) tem tamanho
@@ -13,6 +56,13 @@ import { useState, useRef, useEffect, useCallback } from 'react';
  *  - src: string (objectURL da imagem)
  *  - shape: 'rect' | 'circle'   (padrão: 'rect')
  *  - aspect: number             (padrão: 16/9 para rect, 1 para circle)
+ *  - bgColor: string?           (cor de fundo do post — usada só como pano de
+ *                                 fundo visual da área de edição, pra você já
+ *                                 ver a cor certa enquanto ajusta a imagem.
+ *                                 O "vão" da imagem final SEMPRE sai
+ *                                 transparente daqui; quem aplica a cor de
+ *                                 verdade é o compositeWithBackground(), no
+ *                                 momento de salvar.)
  *  - onConfirm: (blob) => void
  *  - onCancel: () => void
  */
@@ -253,7 +303,11 @@ export default function ImageCropModal({
     frameRef.current.style.cursor = cursors[handle] || 'default';
   }, [imgBox]);
 
-  // ── Confirmar: renderiza no canvas exatamente o que está visível no frame ──
+  // ── Confirmar: renderiza no canvas exatamente o que está visível no frame.
+  //     O "vão" (espaço não coberto pela imagem, se ela foi encolhida) fica
+  //     transparente aqui de propósito — quem aplica a cor de fundo do post
+  //     é o compositeWithBackground(), chamado no momento de salvar, sempre
+  //     com a cor mais atual escolhida no formulário. ──
   const handleConfirm = useCallback(() => {
     if (!imgBox || !imgRef.current || !canvasRef.current || !frameRef.current) return;
     setRendering(true);
@@ -291,13 +345,6 @@ export default function ImageCropModal({
       ctx.beginPath();
       ctx.arc(outW / 2, outH / 2, Math.min(outW, outH) / 2, 0, Math.PI * 2);
       ctx.clip();
-    }
-
-    // Se a imagem foi encolhida e sobrou "vão" na moldura, preenche com a cor
-    // de fundo do post em vez de deixar transparente/preto
-    if (bgColor) {
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, outW, outH);
     }
 
     ctx.drawImage(img, natCropX, natCropY, natCropW, natCropH, 0, 0, outW, outH);
@@ -376,14 +423,16 @@ export default function ImageCropModal({
           >
             {/* Viewport clipado — só o que está aqui dentro entra no resultado final.
                 inset = HANDLE_MARGIN pra alinhar com a caixa de conteúdo (a moldura de
-                verdade), já que o container posicionado inclui o padding também. */}
+                verdade), já que o container posicionado inclui o padding também.
+                O fundo reflete a bgColor do post (quando informada) só pra já mostrar
+                aqui, durante a edição, como vai ficar o "vão" depois de composto. */}
             <div
               style={{
                 position: 'absolute',
                 inset: HANDLE_MARGIN,
                 overflow: 'hidden',
                 borderRadius: shape === 'circle' ? '50%' : 8,
-                background: '#0d0518',
+                background: bgColor || '#0d0518',
               }}
             >
               {imgBox ? (
