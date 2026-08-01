@@ -319,6 +319,13 @@ export default function EditSetModal({ set, onClose, onSaved }) {
       //    momento em que o recorte foi feito.
       if (croppedBlob) {
         const finalImage = await compositeWithBackground(croppedBlob, bgColor);
+
+        if (finalImage.size > MAX_IMAGE_SIZE) {
+          toast.error('A imagem final ficou grande demais. Tenta uma foto com menos detalhe ou ajuste o recorte.');
+          setLoading(false);
+          return;
+        }
+
         const formData = new FormData();
         formData.append('file', finalImage, 'set-image.png');
         try {

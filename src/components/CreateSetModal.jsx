@@ -319,6 +319,12 @@ export default function CreateSetModal({ onClose, onCreated }) {
       // momento em que o recorte foi feito.
       const finalImage = await compositeWithBackground(croppedBlob, bgColor);
 
+      if (finalImage.size > MAX_IMAGE_SIZE) {
+        toast.error('A imagem final ficou grande demais. Tenta uma foto com menos detalhe ou ajuste o recorte.');
+        setLoading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append('title',           form.title.trim());
       formData.append('claimOpensAt',    new Date(form.claimOpensAt).toISOString());

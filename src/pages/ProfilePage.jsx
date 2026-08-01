@@ -155,6 +155,12 @@ export default function ProfilePage() {
     // "Redimensionar" — quem cuida de revogá-lo é o efeito acima, quando ele
     // for substituído por um novo ou a página for fechada.
     setCropSrc(null);
+
+    if (blob && blob.size > MAX_IMAGE_SIZE) {
+      toast.error('A imagem final ficou grande demais. Tenta uma foto com menos detalhe ou ajuste o recorte.');
+      return;
+    }
+
     setUploadingAvatar(true);
     try {
       const formData = new FormData();

@@ -10,6 +10,11 @@ import { RotateCcw } from 'lucide-react';
  * a cor que estava selecionada no momento em que o recorte em si foi feito.
  * Isso evita que a imagem fique com uma cor "presa" de um estado antigo do
  * formulário.
+ *
+ * A saída é sempre JPEG: depois de composta com uma cor de fundo sólida, a
+ * imagem não tem mais nenhuma área transparente, então não há motivo pra
+ * pagar o preço (arquivo bem maior) de manter PNG — JPEG comprime fotografia
+ * com detalhe de forma muito mais eficiente.
  */
 export function compositeWithBackground(blob, bgColor) {
   return new Promise((resolve, reject) => {
@@ -32,7 +37,7 @@ export function compositeWithBackground(blob, bgColor) {
         URL.revokeObjectURL(url);
         if (finalBlob) resolve(finalBlob);
         else reject(new Error('Falha ao compor a imagem final.'));
-      }, 'image/png');
+      }, 'image/jpeg', 0.9);
     };
 
     img.onerror = () => {
@@ -70,9 +75,10 @@ function computeCoverBox(natW, natH, fw, fh) {
  *                                 fundo visual da área de edição, pra você já
  *                                 ver a cor certa enquanto ajusta a imagem.
  *                                 O "vão" da imagem final SEMPRE sai
- *                                 transparente daqui; quem aplica a cor de
- *                                 verdade é o compositeWithBackground(), no
- *                                 momento de salvar.)
+ *                                 transparente daqui pra shape="rect"; quem
+ *                                 aplica a cor de verdade é o
+ *                                 compositeWithBackground(), no momento de
+ *                                 salvar. Não é usada para shape="circle".)
  *  - onConfirm: (blob) => void
  *  - onCancel: () => void
  */
@@ -93,12 +99,21 @@ export default function ImageCropModal({
 
   // Posição/tamanho da IMAGEM em pixels de tela, relativos ao frame
   const [imgBox, setImgBox] = useState(null); // { x, y, w, h }
-  const [frameSize, setFrameSize] = useState(null); // { w, h } — medido quando a imagem carrega
+  const [frameSize, setFrameSize] = useState(null); // { w, h } — só pra desenhar as alças
   // Espelha imgBox num ref, lido durante o arrasto — evita que onPointerMove
   // precise de imgBox no closure (o que forçava recriar a função — e
-  // reanexar os listeners da window — a cada frame do arrasto, cenário onde
-  // o toque em celulares é mais sensível a perder eventos no meio do gesto).
+  // reanexar os listeners da window — a cada frame do arrasto).
   const imgBoxRef = useRef(null);
+  // Tamanho da moldura MEDIDO UMA ÚNICA VEZ, no carregamento da imagem, e
+  // reaproveitado em todo o resto (arrasto, redefinir, e principalmente na
+  // hora de confirmar). Isso é de propósito: remedir a moldura via
+  // getBoundingClientRect() em momentos diferentes (durante o ajuste vs. no
+  // clique em "Confirmar") é sensível a pequenas variações de layout comuns
+  // em celular (barra de endereço, teclado, etc.) — se a medida usada pra
+  // posicionar a imagem na tela for diferente da medida usada pra calcular o
+  // recorte final, o resultado sai deslocado em relação ao que foi mostrado
+  // durante o ajuste. Usar sempre a MESMA medida elimina essa divergência.
+  const frameSizeRef = useRef(null);
   const dragRef = useRef(null); // { mode, startX, startY, origBox }
   const [rendering, setRendering] = useState(false);
   const [ready, setReady] = useState(false);
@@ -116,7 +131,9 @@ export default function ImageCropModal({
   //     do frame já inclui esse padding, e por isso é sempre subtraído abaixo. ──
   const HANDLE_MARGIN = 28;
 
-  const getFrameRect = () => {
+  // Medição FRESCA e completa (posição + tamanho) — usada só na primeira
+  // medição, quando ainda não existe nada em frameSizeRef pra reaproveitar.
+  const measureFrameRect = () => {
     const r = frameRef.current.getBoundingClientRect();
     return {
       left: r.left + HANDLE_MARGIN,
@@ -126,11 +143,19 @@ export default function ImageCropModal({
     };
   };
 
+  // Posição atual da moldura na tela (isso sim precisa ser sempre fresco —
+  // é o que muda legitimamente se a página rolar durante o arrasto).
+  const getFramePos = () => {
+    const r = frameRef.current.getBoundingClientRect();
+    return { left: r.left + HANDLE_MARGIN, top: r.top + HANDLE_MARGIN };
+  };
+
   // ── Reseta o estado sempre que a imagem (src) mudar — mesmo que o componente
   //     seja reaproveitado sem desmontar entre duas sessões de recorte diferentes ──
   useEffect(() => {
     updateImgBox(null);
     setFrameSize(null);
+    frameSizeRef.current = null;
     setReady(false);
     dragRef.current = null;
   }, [src]);
@@ -143,15 +168,16 @@ export default function ImageCropModal({
     const measure = (attemptsLeft) => {
       const img = imgRef.current;
       if (!img || !frameRef.current) return;
-      const { width: fw, height: fh } = getFrameRect();
+      const { width: fw, height: fh } = measureFrameRect();
 
       if ((!fw || !fh) && attemptsLeft > 0) {
         requestAnimationFrame(() => measure(attemptsLeft - 1));
         return;
       }
 
-      updateImgBox(computeCoverBox(img.naturalWidth, img.naturalHeight, fw, fh));
+      frameSizeRef.current = { w: fw, h: fh };
       setFrameSize({ w: fw, h: fh });
+      updateImgBox(computeCoverBox(img.naturalWidth, img.naturalHeight, fw, fh));
       setReady(true);
     };
 
@@ -163,8 +189,8 @@ export default function ImageCropModal({
   //     nada da imagem original — ela nunca foi alterada, só a posição dela. ──
   const handleReset = () => {
     const img = imgRef.current;
-    if (!img || !frameRef.current) return;
-    const { width: fw, height: fh } = getFrameRect();
+    if (!img || !frameSizeRef.current) return;
+    const { w: fw, h: fh } = frameSizeRef.current;
     updateImgBox(computeCoverBox(img.naturalWidth, img.naturalHeight, fw, fh));
   };
 
@@ -240,17 +266,17 @@ export default function ImageCropModal({
     return null;
   };
 
-  // ── Correção de zoom do Safari mobile ──────────────────────────────────
+  // ── Correção de zoom do Safari/WebKit mobile ────────────────────────────
   // getBoundingClientRect() é sempre relativo ao viewport de LAYOUT. Em
-  // certas condições no Safari iOS (comum quando um campo de texto com
-  // font-size < 16px foi focado pouco antes — o Safari dá zoom automático
-  // na página ao focar esses campos), o clientX/clientY reportado pelo
-  // toque passa a vir relativo ao viewport VISUAL, que só diverge do
-  // viewport de layout quando há esse zoom/pan ativo. Sem correção, os dois
-  // sistemas de coordenadas ficam dessincronizados e a imagem "gruda" num
-  // canto, não importa pra onde se arraste. window.visualViewport dá esse
-  // deslocamento diretamente; no caso normal (sem zoom) ele é 0, então essa
-  // correção não tem efeito nenhum em navegadores/situações não afetadas.
+  // certas condições no WebKit iOS (usado por baixo tanto no Safari quanto
+  // no Chrome/Firefox pra iOS — é exigência da Apple), o clientX/clientY
+  // reportado pelo toque pode vir relativo ao viewport VISUAL, que só
+  // diverge do viewport de layout quando há zoom/pan ativo (comum quando um
+  // campo de texto com font-size < 16px foi focado pouco antes). Sem
+  // correção, os dois sistemas de coordenadas ficam dessincronizados.
+  // window.visualViewport dá esse deslocamento diretamente; no caso normal
+  // (sem zoom) ele é 0, então essa correção não tem efeito nenhum fora dessa
+  // situação específica.
   const getViewportCorrection = () => {
     const vv = window.visualViewport;
     if (!vv) return { dx: 0, dy: 0 };
@@ -258,9 +284,9 @@ export default function ImageCropModal({
   };
 
   const toFrameCoords = (e) => {
-    const rect = getFrameRect();
+    const { left, top } = getFramePos();
     const { dx, dy } = getViewportCorrection();
-    return { x: e.clientX + dx - rect.left, y: e.clientY + dy - rect.top };
+    return { x: e.clientX + dx - left, y: e.clientY + dy - top };
   };
 
   // Tira o foco de qualquer campo de texto que tenha ficado ativo antes de
@@ -273,29 +299,28 @@ export default function ImageCropModal({
   }, []);
 
   // ── Arrasto: unificado em Pointer Events (cobre mouse, touch e caneta com
-  //     a mesma API). Não duplica mais em onTouchStart/touchmove/touchend —
-  //     ter os dois sistemas escutando o mesmo gesto ao mesmo tempo é o que
-  //     causava o comportamento errático no celular (a imagem "voltando"
-  //     pro canto em vez de ficar onde foi solta). ──
+  //     a mesma API). Não duplica em onTouchStart/touchmove/touchend — ter os
+  //     dois sistemas escutando o mesmo gesto ao mesmo tempo é uma fonte
+  //     clássica de comportamento errático em touch. ──
   const onPointerDown = (e) => {
-    if (!imgBoxRef.current || !frameRef.current) return;
+    if (!imgBoxRef.current || !frameSizeRef.current) return;
     e.preventDefault();
     const { x, y } = toFrameCoords(e);
-    const { width: fw, height: fh } = getFrameRect();
+    const { w: fw, h: fh } = frameSizeRef.current;
     const mode = getHandleAt(x, y, imgBoxRef.current, fw, fh);
     if (!mode) return;
-    frameRef.current.setPointerCapture?.(e.pointerId);
+    frameRef.current?.setPointerCapture?.(e.pointerId);
     dragRef.current = { mode, startX: x, startY: y, origBox: { ...imgBoxRef.current } };
   };
 
   const onPointerMove = useCallback((e) => {
-    if (!dragRef.current || !imgBoxRef.current || !frameRef.current) return;
+    if (!dragRef.current || !imgBoxRef.current || !frameSizeRef.current) return;
     e.preventDefault();
     const { x: mx, y: my } = toFrameCoords(e);
     const { mode, startX, startY, origBox: o } = dragRef.current;
     const dx = mx - startX;
     const dy = my - startY;
-    const { width: fw, height: fh } = getFrameRect();
+    const { w: fw, h: fh } = frameSizeRef.current;
 
     let next = { ...o };
 
@@ -342,10 +367,10 @@ export default function ImageCropModal({
   }, [onPointerMove, onPointerUp]);
 
   const getCursor = useCallback((e) => {
-    if (!imgBox || !frameRef.current) return;
+    if (!imgBoxRef.current || !frameSizeRef.current || !frameRef.current) return;
     const { x, y } = toFrameCoords(e);
-    const { width: fw, height: fh } = getFrameRect();
-    const handle = getHandleAt(x, y, imgBox, fw, fh);
+    const { w: fw, h: fh } = frameSizeRef.current;
+    const handle = getHandleAt(x, y, imgBoxRef.current, fw, fh);
     const cursors = {
       nw: 'nwse-resize', se: 'nwse-resize',
       ne: 'nesw-resize', sw: 'nesw-resize',
@@ -354,21 +379,33 @@ export default function ImageCropModal({
       move: 'move',
     };
     frameRef.current.style.cursor = cursors[handle] || 'default';
-  }, [imgBox]);
+  }, []);
 
-  // ── Confirmar: renderiza no canvas exatamente o que está visível no frame.
-  //     O "vão" (espaço não coberto pela imagem, se ela foi encolhida) fica
-  //     transparente aqui de propósito — quem aplica a cor de fundo do post
-  //     é o compositeWithBackground(), chamado no momento de salvar, sempre
-  //     com a cor mais atual escolhida no formulário. ──
+  // ── Confirmar: renderiza no canvas exatamente o que está visível no frame,
+  //     usando a MESMA medida de moldura (frameSizeRef) usada durante todo o
+  //     ajuste — nunca remede na hora de confirmar, pra não correr o risco de
+  //     pegar um valor diferente do que foi mostrado na tela.
+  //
+  //     Para shape="rect" (imagem do set), o "vão" (espaço não coberto pela
+  //     imagem, se ela foi encolhida) fica transparente aqui de propósito —
+  //     quem aplica a cor de fundo do post é o compositeWithBackground(), no
+  //     momento de salvar, sempre com a cor mais atual. Por isso a saída
+  //     continua sendo PNG (precisa preservar a transparência pra isso
+  //     funcionar depois).
+  //
+  //     Para shape="circle" (foto de perfil), não existe nenhuma etapa de
+  //     composição posterior — o círculo final já é sempre recortado
+  //     visualmente via CSS (border-radius) em todo lugar que a foto
+  //     aparece, então a transparência do PNG nunca fazia diferença nenhuma
+  //     ali. A saída sai direto em JPEG, bem mais leve pra fotografia. ──
   const handleConfirm = useCallback(() => {
-    if (!imgBox || !imgRef.current || !canvasRef.current || !frameRef.current) return;
+    if (!imgBox || !imgRef.current || !canvasRef.current || !frameSizeRef.current) return;
     setRendering(true);
 
     const img = imgRef.current;
     const natW = img.naturalWidth;
     const natH = img.naturalHeight;
-    const { width: fw, height: fh } = getFrameRect();
+    const { w: fw, h: fh } = frameSizeRef.current;
 
     // Escala tela → natural, por eixo (podem ser diferentes, já que a imagem pode estar esticada)
     const scaleX = natW / imgBox.w;
@@ -395,6 +432,11 @@ export default function ImageCropModal({
     const ctx = canvas.getContext('2d');
 
     if (shape === 'circle') {
+      // JPEG não tem canal alpha — preenche explicitamente de preto o que
+      // sobrar fora do círculo (e qualquer "vão", se a imagem foi encolhida),
+      // em vez de depender do comportamento padrão de cada navegador.
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, outW, outH);
       ctx.beginPath();
       ctx.arc(outW / 2, outH / 2, Math.min(outW, outH) / 2, 0, Math.PI * 2);
       ctx.clip();
@@ -402,10 +444,13 @@ export default function ImageCropModal({
 
     ctx.drawImage(img, natCropX, natCropY, natCropW, natCropH, 0, 0, outW, outH);
 
+    const mimeType = shape === 'circle' ? 'image/jpeg' : 'image/png';
+    const quality  = shape === 'circle' ? 0.9 : undefined;
+
     canvas.toBlob((blob) => {
       setRendering(false);
       onConfirm(blob);
-    }, 'image/png');
+    }, mimeType, quality);
   }, [imgBox, shape, onConfirm]);
 
   const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
