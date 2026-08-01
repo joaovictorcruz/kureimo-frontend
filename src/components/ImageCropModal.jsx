@@ -240,10 +240,37 @@ export default function ImageCropModal({
     return null;
   };
 
+  // ── Correção de zoom do Safari mobile ──────────────────────────────────
+  // getBoundingClientRect() é sempre relativo ao viewport de LAYOUT. Em
+  // certas condições no Safari iOS (comum quando um campo de texto com
+  // font-size < 16px foi focado pouco antes — o Safari dá zoom automático
+  // na página ao focar esses campos), o clientX/clientY reportado pelo
+  // toque passa a vir relativo ao viewport VISUAL, que só diverge do
+  // viewport de layout quando há esse zoom/pan ativo. Sem correção, os dois
+  // sistemas de coordenadas ficam dessincronizados e a imagem "gruda" num
+  // canto, não importa pra onde se arraste. window.visualViewport dá esse
+  // deslocamento diretamente; no caso normal (sem zoom) ele é 0, então essa
+  // correção não tem efeito nenhum em navegadores/situações não afetadas.
+  const getViewportCorrection = () => {
+    const vv = window.visualViewport;
+    if (!vv) return { dx: 0, dy: 0 };
+    return { dx: vv.offsetLeft, dy: vv.offsetTop };
+  };
+
   const toFrameCoords = (e) => {
     const rect = getFrameRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const { dx, dy } = getViewportCorrection();
+    return { x: e.clientX + dx - rect.left, y: e.clientY + dy - rect.top };
   };
+
+  // Tira o foco de qualquer campo de texto que tenha ficado ativo antes de
+  // abrir este modal (ex: título/descrição do set) — ajuda o Safari a
+  // desfazer o zoom automático de foco antes do usuário começar a arrastar.
+  useEffect(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, []);
 
   // ── Arrasto: unificado em Pointer Events (cobre mouse, touch e caneta com
   //     a mesma API). Não duplica mais em onTouchStart/touchmove/touchend —
