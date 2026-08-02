@@ -349,7 +349,10 @@ export default function SetPage() {
     try {
       await setsApi.cancel(token);
       toast.success('Set cancelado.');
-      fetchSet();
+      // Depois de cancelado, o set deixa de estar em um estado navegável
+      // normalmente (interagir com a página aqui levava a erros) — manda o
+      // GOM de volta pra listagem de sets em vez de tentar recarregar esta página.
+      navigate('/dashboard');
     } catch (err) {
       toast.error(err?.message || 'Erro ao cancelar o set.');
     }
@@ -537,7 +540,13 @@ export default function SetPage() {
   );
 
   const canAddMember  = isOwnerGom && set.status === 'Draft';
-  const canEditMember = isOwnerGom && (set.status === 'Draft' || set.status === 'Published') && !!(set.photocards || []).length;
+  // Só faz sentido editar/reordenar/excluir membros enquanto o set ainda é um
+  // rascunho — depois de publicado, os collectors já estão dando claim em
+  // cima da lista atual, então essa ação fica indisponível. Também não exige
+  // mais ter pelo menos 1 membro: assim o botão "Concluir" continua visível
+  // mesmo se o único membro for excluído durante a edição, permitindo sair
+  // do modo de edição normalmente em vez de ficar preso nele.
+  const canEditMember = isOwnerGom && set.status === 'Draft';
 
   const gomClickable   = !isOwnerGom && !!gon.id;
   const gomBorderColor = getContrastBorderColor(bgColor);
@@ -742,27 +751,25 @@ export default function SetPage() {
               )}
             </div>
 
-            {editMode && (
+            {!(set.photocards || []).length ? (
+              isGom && set.status === 'Draft' && (
+                <div className={styles.gomHint}>
+                  <AlertTriangle size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>Adicione um ou mais membros para poder publicar o seu set para os collectors.</span>
+                </div>
+              )
+            ) : editMode ? (
               <div className={styles.gomHint} style={{ marginBottom: 10 }}>
                 <GripVertical size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
                 <span>Arraste para reordenar · clique em Editar para alterar nome/versão · Excluir para remover</span>
               </div>
-            )}
-
-            {isGom && set.status === 'Draft' && !editMode && (
-              <div className={styles.gomHint}>
-                {!(set.photocards || []).length ? (
-                  <>
-                    <AlertTriangle size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <span>Adicione um ou mais membros para poder publicar o seu set para os collectors.</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <span>Após adicionar todos os membros, publique o set para que os collectors possam dar claim!</span>
-                  </>
-                )}
-              </div>
+            ) : (
+              isGom && set.status === 'Draft' && (
+                <div className={styles.gomHint}>
+                  <CheckCircle2 size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>Após adicionar todos os membros, publique o set para que os collectors possam dar claim!</span>
+                </div>
+              )
             )}
 
             {reordering && (

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { setsApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import ImageCropModal, { compositeWithBackground } from './ImageCropModal';
+import { Scissors, Image as ImageIcon } from 'lucide-react';
 
 const BG_PRESETS = [
   { label: 'Rosa',    value: '#F28695' },
@@ -182,20 +183,23 @@ function ImageUploadField({ imagePreview, existingUrl, hasOriginalNew, onFileSel
           <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 6 }}>
             {/* Recorta de novo a imagem que já está publicada no servidor */}
             {existingUrl && !imagePreview && (
-              <button type="button" onClick={onRecropExisting} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-                ✂️ Recortar atual
+              <button type="button" onClick={onRecropExisting} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Scissors size={12} strokeWidth={2} />
+                Recortar atual
               </button>
             )}
             {/* Recorta de novo a foto NOVA que acabou de ser escolhida nesta
                 sessão — usa sempre o arquivo original, nunca o recorte já
                 feito, pra não perder qualidade a cada ajuste */}
             {imagePreview && hasOriginalNew && (
-              <button type="button" onClick={onRecropNew} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-                ✂️ Recortar
+              <button type="button" onClick={onRecropNew} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Scissors size={12} strokeWidth={2} />
+                Recortar
               </button>
             )}
-            <button type="button" onClick={() => inputRef.current?.click()} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-              🖼️ Nova imagem
+            <button type="button" onClick={() => inputRef.current?.click()} style={{ background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ImageIcon size={12} strokeWidth={2} />
+              Nova imagem
             </button>
           </div>
         </div>
@@ -203,7 +207,9 @@ function ImageUploadField({ imagePreview, existingUrl, hasOriginalNew, onFileSel
         <div onClick={() => inputRef.current?.click()} style={{ border: '2px dashed var(--card-border)', borderRadius: 'var(--radius-sm)', padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.5)', transition: 'border-color 0.15s, background 0.15s' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--rose)'; e.currentTarget.style.background = 'var(--rose-light)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.background = 'rgba(255,255,255,0.5)'; }}>
-          <div style={{ fontSize: '1.6rem', marginBottom: 6 }}>🖼️</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+            <ImageIcon size={28} strokeWidth={1.5} style={{ color: 'var(--gray)' }} />
+          </div>
           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink-soft)' }}>Clique para selecionar</div>
           <div style={{ fontSize: '0.73rem', color: 'var(--gray)', marginTop: 3 }}>JPG, JPEG, PNG ou WEBP · máx 20MB</div>
         </div>
@@ -343,8 +349,6 @@ export default function EditSetModal({ set, onClose, onSaved }) {
     }
   };
 
-  const displaySrc = imagePreview || existingUrl;
-
   return (
     <>
       <div className="modal-overlay">
@@ -356,20 +360,6 @@ export default function EditSetModal({ set, onClose, onSaved }) {
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Live preview */}
-            <div style={{ borderRadius: 'var(--radius)', overflow: 'hidden', border: '1.5px solid var(--card-border)', marginBottom: 4 }}>
-              <div style={{ background: bgColor, padding: '16px 18px' }}>
-                {displaySrc && (
-                  <div style={{ width: '100%', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', marginBottom: 10 }}>
-                    <img src={displaySrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
-                  </div>
-                )}
-                <div style={{ fontFamily: fontStyle.css, fontSize: '1rem', fontWeight: 700, color: fontColor }}>
-                  {form.title || 'Título do set'}
-                </div>
-              </div>
-            </div>
-
             <div className="field">
               <label>Título *</label>
               <input className="input" value={form.title} onChange={(e) => setF('title', e.target.value)} autoFocus />
