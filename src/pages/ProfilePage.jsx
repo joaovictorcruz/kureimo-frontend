@@ -21,7 +21,7 @@ import gomStyles from './GomProfilePage.module.css';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const ALLOWED_IMAGE_EXTS  = '.jpg,.jpeg,.png,.webp';
-const MAX_IMAGE_SIZE      = 5 * 1024 * 1024;
+const MAX_IMAGE_SIZE      = 20 * 1024 * 1024;
 
 const LOGTO_ACCOUNT_URL = 'https://auth.kureimo.com/account/security';
 
@@ -137,7 +137,7 @@ export default function ProfilePage() {
       return;
     }
     if (file.size > MAX_IMAGE_SIZE) {
-      toast.error('A imagem deve ter no máximo 5MB.');
+      toast.error('A imagem deve ter no máximo 20MB.');
       e.target.value = '';
       return;
     }

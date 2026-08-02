@@ -626,13 +626,25 @@ export default function ImageCropModal({
                 inset = HANDLE_MARGIN pra alinhar com a caixa de conteúdo (a moldura de
                 verdade), já que o container posicionado inclui o padding também.
                 O fundo reflete a bgColor do post (quando informada) só pra já mostrar
-                aqui, durante a edição, como vai ficar o "vão" depois de composto. */}
+                aqui, durante a edição, como vai ficar o "vão" depois de composto.
+
+                IMPORTANTE: esse viewport SEMPRE fica com cantos quadrados (borderRadius
+                fixo, nunca '50%'), mesmo para shape="circle". Antes, aqui usava borderRadius
+                circular + overflow:hidden — como esse container é sempre um quadrado
+                (aspect 1 pro círculo), isso recortava de verdade (escondia) qualquer parte
+                da imagem que caísse nos "cantos" fora do círculo inscrito, mesmo que ainda
+                estivesse dentro da moldura quadrada. Na prática, ao encolher ou mover a
+                imagem no avatar, ela parecia "sumir"/ser cortada bem antes do que no set —
+                porque o set (retângulo) nunca teve esse recorte visual, só o círculo. Agora
+                os dois se comportam igual: a imagem em si nunca é escondida durante o
+                ajuste, só o formato final (visível no guia abaixo) indica o que vai ficar
+                dentro do círculo depois de confirmar. */}
             <div
               style={{
                 position: 'absolute',
                 inset: HANDLE_MARGIN,
                 overflow: 'hidden',
-                borderRadius: shape === 'circle' ? '50%' : 8,
+                borderRadius: 8,
                 background: bgColor || '#0d0518',
               }}
             >
@@ -666,9 +678,29 @@ export default function ImageCropModal({
                   draggable={false}
                 />
               )}
+
+              {/* Guia visual do círculo final — só ESCURECE (dim) a área fora do
+                  círculo com um box-shadow gigante; não usa overflow/clip nenhum,
+                  então a imagem embaixo nunca é de fato escondida/recortada — o
+                  usuário continua vendo (e podendo arrastar de volta) qualquer
+                  parte que esteja fora do círculo, exatamente como acontece hoje
+                  com o retângulo do set. */}
+              {shape === 'circle' && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: '50%',
+                    boxShadow: '0 0 0 9999px rgba(13, 5, 24, 0.72)',
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
             </div>
 
-            {/* Borda — mesmo inset acima, fica exatamente na borda da moldura real */}
+            {/* Borda — mesmo inset acima, fica exatamente na borda da moldura real.
+                Continua circular pra shape="circle" (é só um contorno decorativo,
+                sem overflow:hidden — não recorta nada, só sinaliza o formato final). */}
             <div
               style={{
                 position: 'absolute',

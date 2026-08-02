@@ -50,7 +50,7 @@ const FONT_OPTIONS = [
 const CATEGORIES = ['Todos', 'Sans-serif', 'Serif', 'Cursiva', 'Mono'];
 const ALLOWED_IMAGE_EXTS  = '.jpg,.jpeg,.png,.webp';
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-const MAX_IMAGE_SIZE      = 5 * 1024 * 1024;
+const MAX_IMAGE_SIZE      = 20 * 1024 * 1024;
 
 const loadedFonts = new Set(['Nunito', 'DM Serif Display']);
 function ensureFont(fontName) {
@@ -166,7 +166,7 @@ function ImageUploadField({ imagePreview, existingUrl, hasOriginalNew, onFileSel
     const file = e.target.files?.[0];
     if (!file) return;
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) { alert('Formato inválido. Use JPG, JPEG, PNG ou WEBP.'); e.target.value = ''; return; }
-    if (file.size > MAX_IMAGE_SIZE) { alert('A imagem deve ter no máximo 5MB.'); e.target.value = ''; return; }
+    if (file.size > MAX_IMAGE_SIZE) { alert('A imagem deve ter no máximo 20MB.'); e.target.value = ''; return; }
     onFileSelected(file);
     e.target.value = '';
   };
@@ -205,7 +205,7 @@ function ImageUploadField({ imagePreview, existingUrl, hasOriginalNew, onFileSel
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.background = 'rgba(255,255,255,0.5)'; }}>
           <div style={{ fontSize: '1.6rem', marginBottom: 6 }}>🖼️</div>
           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink-soft)' }}>Clique para selecionar</div>
-          <div style={{ fontSize: '0.73rem', color: 'var(--gray)', marginTop: 3 }}>JPG, JPEG, PNG ou WEBP · máx 5MB</div>
+          <div style={{ fontSize: '0.73rem', color: 'var(--gray)', marginTop: 3 }}>JPG, JPEG, PNG ou WEBP · máx 20MB</div>
         </div>
       )}
       <input ref={inputRef} type="file" accept={ALLOWED_IMAGE_EXTS} onChange={handleChange} style={{ display: 'none' }} />

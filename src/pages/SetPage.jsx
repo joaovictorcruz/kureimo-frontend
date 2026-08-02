@@ -20,7 +20,7 @@ import {
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const ALLOWED_IMAGE_EXTS  = '.jpg,.jpeg,.png,.webp';
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
 const UNCLAIM_WINDOW_MS = 6 * 60 * 1000; // 5 minutos
 
 const FONT_MAP = {
@@ -457,7 +457,7 @@ export default function SetPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) { toast.error('Formato inválido. Use JPG, JPEG, PNG ou WEBP.'); e.target.value = ''; return; }
-    if (file.size > MAX_IMAGE_SIZE) { toast.error('A imagem deve ter no máximo 5MB.'); e.target.value = ''; return; }
+    if (file.size > MAX_IMAGE_SIZE) { toast.error('A imagem deve ter no máximo 20MB.'); e.target.value = ''; return; }
     if (cropSrc && !cropIsExisting) URL.revokeObjectURL(cropSrc);
     setCropIsExisting(false);
     setCropSrc(URL.createObjectURL(file));
