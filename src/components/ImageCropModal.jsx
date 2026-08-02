@@ -59,6 +59,75 @@ function computeCoverBox(natW, natH, fw, fh) {
 }
 
 /**
+ * Corrige um retângulo de origem (sx, sy, sw, sh) que se estende PRA FORA dos
+ * limites naturais da imagem (sx/sy negativos, ou sx+sw/sy+sh além de
+ * natW/natH) — situação que acontece sempre que a imagem foi encolhida
+ * dentro da moldura, deixando "vão" visível de um ou mais lados.
+ *
+ * Isso é necessário por causa de um bug conhecido do WebKit/Safari (iOS
+ * Safari e qualquer navegador em iOS, já que todos usam a mesma engine): o
+ * Canvas 2D drawImage() com sx/sy negativos NÃO reposiciona a origem como
+ * define a spec (e como Chrome/Firefox fazem) — em vez disso o Safari
+ * "zera" a origem pra (0,0) e, com isso, desloca o corte inteiro pro canto
+ * superior esquerdo da imagem original, ignorando a posição/tamanho reais
+ * que o usuário ajustou. É exatamente o comportamento visto em mobile:
+ * a imagem "salta" de volta pro canto superior esquerdo ao confirmar.
+ * https://bugs.webkit.org/show_bug.cgi?id=... (bug histórico e recorrente
+ * de drawImage com sub-retângulo parcialmente fora da imagem no WebKit)
+ *
+ * A correção: nunca passar sx/sy negativos (nem sw/sh que estourem
+ * natW/natH) pro drawImage. Em vez disso, recorta-se o retângulo de origem
+ * pra caber dentro da imagem real, e desloca/encolhe proporcionalmente o
+ * retângulo de destino (dx/dy/dw/dh) pra compensar — o resultado visual é
+ * idêntico (o "vão" continua saindo transparente/preto, só que calculado
+ * a partir do destino em vez de pedir uma origem inválida pro navegador).
+ */
+function clampSourceRect(sx, sy, sw, sh, natW, natH, dx, dy, dw, dh) {
+  let rSx = sx, rSy = sy, rSw = sw, rSh = sh;
+  let rDx = dx, rDy = dy, rDw = dw, rDh = dh;
+
+  // Eixo X — corta o que sobra à esquerda (sx < 0)
+  if (rSw > 0 && rSx < 0) {
+    const cut = -rSx;
+    const frac = Math.min(1, cut / rSw);
+    rDx += frac * rDw;
+    rDw -= frac * rDw;
+    rSw += rSx; // rSx é negativo, então isso reduz rSw em `cut`
+    rSx = 0;
+  }
+  // Eixo X — corta o que sobra à direita (sx + sw > natW)
+  if (rSw > 0 && rSx + rSw > natW) {
+    const over = rSx + rSw - natW;
+    const frac = Math.min(1, over / rSw);
+    rDw -= frac * rDw;
+    rSw -= over;
+  }
+  // Eixo Y — corta o que sobra em cima (sy < 0)
+  if (rSh > 0 && rSy < 0) {
+    const cut = -rSy;
+    const frac = Math.min(1, cut / rSh);
+    rDy += frac * rDh;
+    rDh -= frac * rDh;
+    rSh += rSy;
+    rSy = 0;
+  }
+  // Eixo Y — corta o que sobra embaixo (sy + sh > natH)
+  if (rSh > 0 && rSy + rSh > natH) {
+    const over = rSy + rSh - natH;
+    const frac = Math.min(1, over / rSh);
+    rDh -= frac * rDh;
+    rSh -= over;
+  }
+
+  return {
+    sx: rSx, sy: rSy,
+    sw: Math.max(0, rSw), sh: Math.max(0, rSh),
+    dx: rDx, dy: rDy,
+    dw: Math.max(0, rDw), dh: Math.max(0, rDh),
+  };
+}
+
+/**
  * ImageCropModal
  *
  * Modelo: a moldura (o quadro onde a imagem final vai aparecer) tem tamanho
@@ -442,7 +511,31 @@ export default function ImageCropModal({
       ctx.clip();
     }
 
-    ctx.drawImage(img, natCropX, natCropY, natCropW, natCropH, 0, 0, outW, outH);
+    // ── FIX (bug do drawImage no Safari/iOS) ───────────────────────────
+    // Sempre que a imagem foi encolhida dentro da moldura (natCropX/Y < 0
+    // ou natCropW/H > natW/H), o retângulo de origem calculado acima "vaza"
+    // pra fora dos limites reais da imagem. No Chrome/Firefox isso é
+    // tratado corretamente (a origem é reposicionada como manda a spec),
+    // mas no WebKit/Safari (todo navegador em iOS) a origem negativa é
+    // zerada e o corte inteiro salta pro canto superior esquerdo da
+    // imagem original — exatamente o bug relatado só em mobile. Por isso
+    // NUNCA passamos um retângulo de origem fora dos limites da imagem pro
+    // drawImage: ele é recortado aqui, e o retângulo de destino é ajustado
+    // na mesma proporção pra preservar visualmente o mesmo resultado
+    // (o "vão" continua saindo transparente/preto do mesmo jeito).
+    const clamped = clampSourceRect(
+      natCropX, natCropY, natCropW, natCropH,
+      natW, natH,
+      0, 0, outW, outH,
+    );
+
+    if (clamped.sw > 0 && clamped.sh > 0 && clamped.dw > 0 && clamped.dh > 0) {
+      ctx.drawImage(
+        img,
+        clamped.sx, clamped.sy, clamped.sw, clamped.sh,
+        clamped.dx, clamped.dy, clamped.dw, clamped.dh,
+      );
+    }
 
     const mimeType = shape === 'circle' ? 'image/jpeg' : 'image/png';
     const quality  = shape === 'circle' ? 0.9 : undefined;
